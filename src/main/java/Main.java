@@ -4,10 +4,11 @@ import java.io.IOException;
 public class Main {
 
 
-    public static void main(String[] args) throws UnsupportedAudioFileException, IOException {
+    public static void main(String[] args) {
 
-        VoskSoundEngineAdapter voskadapter = new VoskSoundEngineAdapter();
-        voskadapter.parseAudioFile("python_example_test.wav");
+        MP4Grep grep = new MP4Grep();
+        grep.setAudioFile("python_example_test.wav");
+        grep.search("one");
 
     }
 }
