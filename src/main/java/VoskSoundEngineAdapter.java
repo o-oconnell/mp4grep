@@ -21,23 +21,19 @@ import java.nio.file.StandardOpenOption;
 
 public class VoskSoundEngineAdapter implements SoundEngineAdapter {
 
-    String tempAudioStorageFile = ".mp4grep_tmp";
+    final String tempAudioStorageFile = ".mp4grep_tmp";
+    final String modelDirectory = "model";
     String audioFileName;
-    String modelDirectory = "model";
 
-    public VoskSoundEngineAdapter() {}
-
-    public void printAudioTranscriptionToFile(String audioFileName) {
+    public VoskSoundEngineAdapter(String audioFileName) {
         this.audioFileName = audioFileName;
+    }
+
+    @Override
+    public Greppable getGreppableResult() {
+
         sendAudioToTimestampedFile();
-    }
-
-    public String getTempAudioStorageFile() {
-        return tempAudioStorageFile;
-    }
-
-    public void setTempAudioStorageFile(String tempAudioStorageFile) {
-        this.tempAudioStorageFile = tempAudioStorageFile;
+        return new GreppableFile(tempAudioStorageFile);
     }
 
     private void sendAudioToTimestampedFile() {
@@ -54,7 +50,8 @@ public class VoskSoundEngineAdapter implements SoundEngineAdapter {
             if (recognizer.acceptWaveForm(b, nbytes)) {
 
                 String jsonResult = recognizer.getResult();
-                printTimestampedResultToOutputFile(jsonResult);
+                // printTimestampedResultToConsole(jsonResult);
+                    printTimestampedResultToOutputFile(jsonResult);
             }
         }
 
@@ -97,10 +94,16 @@ public class VoskSoundEngineAdapter implements SoundEngineAdapter {
         return recognizer;
     }
 
+    private void printTimestampedResultToConsole(String jsonResult) {
+
+            String content = getTimestampFromJSONString(jsonResult) + getSoundTranslationFromJSONString(jsonResult) + "\n";
+            System.out.println(content);
+    }
+
     private void printTimestampedResultToOutputFile(String jsonResult) {
 
         try {
-            deleteCreateTempAudioFile();
+            clearTempAudioFile();
             Path outputFile = Path.of(tempAudioStorageFile);
             String content = getTimestampFromJSONString(jsonResult) + getSoundTranslationFromJSONString(jsonResult) + "\n";
             Files.writeString(outputFile, content, StandardOpenOption.APPEND);
@@ -109,7 +112,7 @@ public class VoskSoundEngineAdapter implements SoundEngineAdapter {
         }
     }
 
-    private void deleteCreateTempAudioFile() {
+    private void clearTempAudioFile() {
 
         try {
             File tempFile = new File(tempAudioStorageFile);

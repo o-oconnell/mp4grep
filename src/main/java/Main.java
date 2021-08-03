@@ -1,14 +1,15 @@
-import javax.sound.sampled.UnsupportedAudioFileException;
-import java.io.IOException;
+
 
 public class Main {
 
-
     public static void main(String[] args) {
 
-        MP4Grep grep = new MP4Grep();
-        grep.setAudioFile("python_example_test.wav");
-        grep.search("one");
+        SoundEngineAdapter soundAdapter = new VoskSoundEngineAdapter("OSR_us_000_0010_8k.wav");
 
+        MP4Grep grep = new MP4Grep.MP4GrepBuilder()
+                .soundAdapter(soundAdapter)
+                .build();
+
+        grep.search("person");
     }
 }

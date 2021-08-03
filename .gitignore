@@ -1,3 +1,6 @@
 OLD_MAVEN_BS
 python_example_test.wav
 model
+.gradle
+.idea
+build
