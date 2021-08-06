@@ -1,15 +1,18 @@
 package SpeechToText;
 
+import Search.CacheKey;
 import Search.Greppable;
 
-import Search.Unix4JGreppable;
-import SpeechToText.SpeechToText;
+import Search.GreppableTranscript;
+import com.google.gson.JsonObject;
 import org.vosk.LibVosk;
 import org.vosk.LogLevel;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 
-import com.jayway.jsonpath.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
@@ -22,6 +25,7 @@ import java.io.File;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 
@@ -31,39 +35,51 @@ public class VoskSpeechToText implements SpeechToText {
     private static final int SAMPLING_RATE = 16000;
     private static final String MODEL_DIRECTORY = "model";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
-    String audioFileName;
+    private static final int MAX_TIMESTAMP_LENGTH = 5;
+    private static final String TEMP_TRANSCRIPTION_FILE = ".transcription";
+    private static final String TEMP_TIMESTAMP_FILE = ".timestamp";
 
-    public VoskSpeechToText(String audioFileName) {
-        this.audioFileName = audioFileName;
+    // NOTE: could have identified the problem with the audiofilename earlier by seeing the low cohesion
+    // of having a member variable that is essentially only used once (after being passed through multiple functions)
+
+    // Absolutely never do: have an instance variable with a setter method (except for objects that just hold data) <- antipattern
+
+    public VoskSpeechToText() {
         voskSetup();
     }
 
-    public void voskSetup() {
-        LibVosk.setLogLevel(LogLevel.DEBUG);
+    private void voskSetup() {
+        LibVosk.setLogLevel(LogLevel.WARNINGS);
     }
 
     @Override
-    public Greppable getGreppableResult() {
+    public Greppable getGreppableResult(CacheKey cacheKey) {
 
-        sendAudioToTimestampedFile();
+        // TODO: take DTO as input to determine the construction of the greppable
 
-        return new Unix4JGreppable(TEMP_AUDIO_STORAGE_FILE);
+        String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheKey.filename);
+
+        sendAudioToTimestampedFile(convertedAudioFile);
+
+        int nWordsPrior = 10, nWordsAfter = 100;
+        return new GreppableTranscript(TEMP_TIMESTAMP_FILE, TEMP_TRANSCRIPTION_FILE, nWordsPrior, nWordsAfter);
     }
 
-    private void sendAudioToTimestampedFile() {
+    private void sendAudioToTimestampedFile(String audioFileName) {
 
-        InputStream audioInputStream = createInputStream();
+        InputStream audioInputStream = createInputStream(audioFileName);
         Recognizer recognizer = createRecognizer();
 
+        clearTempFiles();
         printMainRecognizerResults(recognizer, audioInputStream);
         printFinalRecognizerResult(recognizer);
     }
 
-    private InputStream createInputStream() {
+    private InputStream createInputStream(String audioFileName) {
 
         InputStream AudioInputStream = null;
         try {
-            FileInputStream fileInput = getFileInputStream();
+            FileInputStream fileInput = getFileInputStream(audioFileName);
             BufferedInputStream bufferedInput = new BufferedInputStream(fileInput);
             AudioInputStream = AudioSystem.getAudioInputStream(bufferedInput);
         } catch (UnsupportedAudioFileException | IOException e ) {
@@ -73,7 +89,7 @@ public class VoskSpeechToText implements SpeechToText {
         return AudioInputStream;
     }
 
-    private FileInputStream getFileInputStream() {
+    private FileInputStream getFileInputStream(String audioFileName) {
 
         FileInputStream inputStream = null;
         try {
@@ -93,7 +109,28 @@ public class VoskSpeechToText implements SpeechToText {
     }
 
     private Model createModel() {
-        return new Model(MODEL_DIRECTORY);
+
+        Path modelPath = Paths.get(MODEL_DIRECTORY);
+        if (Files.exists(modelPath)) {
+            return new Model(MODEL_DIRECTORY);
+        } else {
+            System.out.println("Model directory " + MODEL_DIRECTORY + " not found. Exiting.");
+            System.exit(1);
+            return new Model(MODEL_DIRECTORY);
+        }
+    }
+
+    private void clearTempFiles() {
+        try {
+            File transcript = new File(TEMP_TRANSCRIPTION_FILE);
+            File timestamps = new File(TEMP_TIMESTAMP_FILE);
+            transcript.delete();
+            transcript.createNewFile();
+            timestamps.delete();
+            timestamps.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Error creating temporary sound file");
+        }
     }
 
     private void printMainRecognizerResults(Recognizer recognizer, InputStream audioInputStream) {
@@ -105,7 +142,7 @@ public class VoskSpeechToText implements SpeechToText {
         while (numberBytes >= 0) {
             if (recognizer.acceptWaveForm(inputBuffer, numberBytes)) {
                 String jsonResult = recognizer.getResult();
-                printTimestampedResultToOutputFile(jsonResult);
+                printWordsTimestampsToTempFiles(jsonResult);
             }
 
             numberBytes = readBytesFromInputStream(audioInputStream, inputBuffer);
@@ -123,52 +160,71 @@ public class VoskSpeechToText implements SpeechToText {
             result = audioInputStream.read(inputBuffer);
         } catch (java.io.IOException e) {
             System.out.println("Error reading bytes from the audio input stream (derived from the audio file)");
+            e.printStackTrace();
         }
         return result;
     }
 
-    private void printFinalRecognizerResult(Recognizer recognizer) {
-        String finalJsonResult = recognizer.getFinalResult();
-        printTimestampedResultToOutputFile(finalJsonResult);
+    private void printWordsTimestampsToTempFiles(String jsonInput) {
+        JsonObject jsonParseObject = getJsonObject(jsonInput);
+
+        if (jsonParseObject.has("result")) {
+            JsonArray allTimestampedWords = getAllWords(jsonParseObject);
+            printWordsTimestampsToFiles(allTimestampedWords);
+        }
     }
 
-    private void printTimestampedResultToOutputFile(String jsonResult) {
+    private JsonObject getJsonObject(String input) {
+        return new Gson().fromJson(input, JsonObject.class);
+    }
 
+    private JsonArray getAllWords(JsonObject jsonObject) {
+        return jsonObject.get("result").getAsJsonArray();
+    }
+
+    private void printWordsTimestampsToFiles(JsonArray allTimestampedWords) {
+        for (JsonElement wordInfo : allTimestampedWords) {
+            if (wordInfo.isJsonObject()) {
+                String startTime = getStartTime(wordInfo);
+                String word = getWord(wordInfo);
+                putWordInTempFile(word);
+                putTimestampInTempFile(startTime);
+            }
+        }
+    }
+
+    private String getStartTime(JsonElement wordInfo) {
+        return wordInfo.getAsJsonObject().get("start").getAsString();
+    }
+
+    private String getWord(JsonElement wordInfo) {
+        return wordInfo.getAsJsonObject().get("word").getAsString();
+    }
+
+    private void putWordInTempFile(String word) {
         try {
-            clearTempAudioFile();
-            Path outputFile = Path.of(TEMP_AUDIO_STORAGE_FILE);
-            String content = getTimestampFromJSONString(jsonResult) + getSoundTranslationFromJSONString(jsonResult) + "\n";
-            Files.writeString(outputFile, content, StandardOpenOption.APPEND);
+            Path outputFile = Path.of(TEMP_TRANSCRIPTION_FILE);
+            Files.writeString(outputFile, appendNewlineTo(word), StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Error printing sound translation to temporary file");
         }
     }
 
-    private void clearTempAudioFile() {
-
+    private void putTimestampInTempFile(String timestamp) {
         try {
-            File tempFile = new File(TEMP_AUDIO_STORAGE_FILE);
-            tempFile.delete();
-            tempFile.createNewFile();
+            Path outputFile = Path.of(TEMP_TIMESTAMP_FILE);
+            Files.writeString(outputFile, appendNewlineTo(timestamp), StandardOpenOption.APPEND);
         } catch (IOException e) {
-            System.out.println("Error creating temporary sound file");
+            System.out.println("Error printing sound translation to temporary file");
         }
     }
 
-    // not yet refactored, since formatting output will probably require another module
-    private String getTimestampFromJSONString(String input) {
-
-        Object jsonParseObject = Configuration.defaultConfiguration().jsonProvider().parse(input);
-        double timestampStart = JsonPath.read(jsonParseObject, "$.result[0].start");
-        double timestampEnd = JsonPath.read(jsonParseObject, "$.result[-1].end");
-
-        return String.format("%.2f---%.2f:", timestampStart, timestampEnd);
+    private void printFinalRecognizerResult(Recognizer recognizer) {
+        String finalJsonResult = recognizer.getFinalResult();
+        printWordsTimestampsToTempFiles(finalJsonResult);
     }
 
-    private String getSoundTranslationFromJSONString(String input) {
-
-        Object jsonParseObject = Configuration.defaultConfiguration().jsonProvider().parse(input);
-        String text = JsonPath.read(jsonParseObject, "$.text");
-        return text;
+    private String appendNewlineTo(String string) {
+        return string + '\n';
     }
 }

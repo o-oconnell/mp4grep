@@ -1,6 +1,8 @@
-OLD_MAVEN_BS
-python_example_test.wav
 model
 .gradle
 .idea
+.cache
 build
+sound_resources
+out
+converted_sound_resources

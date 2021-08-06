@@ -1,10 +1,11 @@
 package SpeechToText;
 
+import Search.CacheKey;
 import Search.Greppable;
 
 public interface SpeechToText {
 
-    public Greppable getGreppableResult();
+    Greppable getGreppableResult(CacheKey cacheKey);
 
 
 }
