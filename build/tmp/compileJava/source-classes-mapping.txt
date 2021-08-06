@@ -1,17 +1,19 @@
-SoundEngineAdapter.java
- SoundEngineAdapter
 Main.java
  Main
-VoskSoundEngineAdapter.java
- VoskSoundEngineAdapter
-CommandLineArguments.java
- CommandLineArguments
+Greppable.java
+ Greppable
+VoskSpeechToText.java
+ VoskSpeechToText
+SpeechToText.java
+ SpeechToText
+Unix4JGreppable.java
+ Unix4JGreppable
 MP4Grep.java
  MP4Grep
  MP4Grep$MP4GrepBuilder
+ArgumentParser.java
+ ArgumentParser
 Grepper.java
  Grepper
-Greppable.java
- Greppable
-GreppableFile.java
- GreppableFile
+AVgrep.java
+ AVgrep

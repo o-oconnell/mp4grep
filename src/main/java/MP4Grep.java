@@ -1,8 +1,8 @@
 public class MP4Grep {
 
-    private SoundEngineAdapter soundAdapter;
+    private SpeechToText soundAdapter;
 
-    // Defaulting to VoskSoundEngineAdapter since no other java libs exist for sound transcription
+    // Defaulting to VoskSpeechToText since no other java libs exist for sound transcription
     private MP4Grep(MP4GrepBuilder builder) {
         this.soundAdapter = builder.soundAdapter;
     }
@@ -15,11 +15,11 @@ public class MP4Grep {
 
     public static class MP4GrepBuilder {
 
-        private SoundEngineAdapter soundAdapter;
+        private SpeechToText soundAdapter;
 
         public MP4GrepBuilder() {}
 
-        public MP4GrepBuilder soundAdapter(SoundEngineAdapter soundAdapter) {
+        public MP4GrepBuilder soundAdapter(SpeechToText soundAdapter) {
             this.soundAdapter = soundAdapter;
             return this;
         }

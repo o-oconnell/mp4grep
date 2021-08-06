@@ -1,31 +1,41 @@
-import org.unix4j.line.Line;
-import org.unix4j.unix.Grep;
-import org.unix4j.Unix4j;
-
-import java.io.File;
-import java.util.List;
-
-
 public class Grepper {
 
-    private String tempFile;
+    private SpeechToText speechToText;
+    private String searchString;
 
-    public void setTempFile(String tempFile) {
-        this.tempFile = tempFile;
+    // Defaulting to VoskSpeechToText since no other java libs exist for sound transcription
+    private Grepper(Grepper.GrepperBuilder builder) {
+        this.speechToText = builder.speechToText;
+        this.searchString = builder.searchString;
     }
 
-    public void search(String searchString) {
-        File file = new File(tempFile);
-        List<Line> lines = Unix4j.grep(searchString, file).toLineList();
+    public void execute() {
 
-        for (Line l : lines) {
-            System.out.println(l.getContent());
+        Greppable grep = speechToText.getGreppableResult();
+        grep.search(searchString);
+    }
+
+    public static class GrepperBuilder {
+
+        private SpeechToText speechToText;
+        private String searchString;
+
+        public GrepperBuilder() {}
+
+        public GrepperBuilder speechToText(SpeechToText speechToText) {
+            this.speechToText = speechToText;
+            return this;
         }
-    }
 
-    public void clearTempFile() {
-        File file = new File(tempFile);
-        file.delete();
-    }
+        public GrepperBuilder searchString(String searchString) {
+            this.searchString = searchString;
+            return this;
+        }
 
+        public Grepper build() {
+            Grepper grep = new Grepper(this);
+            return grep;
+        }
+
+    }
 }

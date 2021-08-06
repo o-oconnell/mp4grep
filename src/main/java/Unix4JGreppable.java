@@ -4,11 +4,11 @@ import org.unix4j.line.Line;
 import java.io.File;
 import java.util.List;
 
-public class GreppableFile implements Greppable {
+public class Unix4JGreppable implements Greppable {
 
     String filename;
 
-    public GreppableFile(String filename) {
+    public Unix4JGreppable(String filename) {
         this.filename = filename;
     }
 
