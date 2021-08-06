@@ -1,19 +1,17 @@
-Main.java
- Main
-Greppable.java
- Greppable
-VoskSpeechToText.java
- VoskSpeechToText
-SpeechToText.java
- SpeechToText
-Unix4JGreppable.java
- Unix4JGreppable
-MP4Grep.java
- MP4Grep
- MP4Grep$MP4GrepBuilder
-ArgumentParser.java
- ArgumentParser
-Grepper.java
- Grepper
-AVgrep.java
- AVgrep
+Search/Grepper.java
+ Search.Grepper
+ Search.Grepper$GrepperBuilder
+SpeechToText/SpeechToText.java
+ SpeechToText.SpeechToText
+Search/Unix4JGreppable.java
+ Search.Unix4JGreppable
+SpeechToText/VoskSpeechToText.java
+ SpeechToText.VoskSpeechToText
+Search/Greppable.java
+ Search.Greppable
+Main/MP4grep.java
+ Main.MP4grep
+Main/ArgumentParser.java
+ Main.ArgumentParser
+Main/JCommanderArgs.java
+ Main.JCommanderArgs

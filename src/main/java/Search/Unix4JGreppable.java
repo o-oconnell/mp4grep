@@ -1,3 +1,6 @@
+package Search;
+
+import Search.Greppable;
 import org.unix4j.Unix4j;
 import org.unix4j.line.Line;
 

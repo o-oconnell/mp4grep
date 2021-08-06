@@ -1,7 +1,13 @@
+package Main;
+
 import com.beust.jcommander.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import Search.Grepper;
+import SpeechToText.SpeechToText;
+import SpeechToText.VoskSpeechToText;
 
 public class ArgumentParser {
 

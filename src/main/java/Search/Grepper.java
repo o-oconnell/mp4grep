@@ -1,9 +1,13 @@
+package Search;
+
+import SpeechToText.SpeechToText;
+
 public class Grepper {
 
     private SpeechToText speechToText;
     private String searchString;
 
-    // Defaulting to VoskSpeechToText since no other java libs exist for sound transcription
+    // Defaulting to SpeechToText.VoskSpeechToText since no other java libs exist for sound transcription
     private Grepper(Grepper.GrepperBuilder builder) {
         this.speechToText = builder.speechToText;
         this.searchString = builder.searchString;
