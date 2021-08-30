@@ -1,58 +1,73 @@
 package Search;
 
 import java.io.*;
-import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import Output.MultithreadedPrinter;
 import org.apache.commons.io.FileUtils;
 
 public class GreppableTranscript implements Greppable {
+
+    private static final int PERIOD_MATCHES_NEWLINES_AND_SPACES = Pattern.DOTALL;
 
     private String timestampFilename;
     private File contentFile;
     private int nWordsPrior;
     private int nWordsAfter;
+    private String transcript;
+    private String highlightedTranscript;
+    private String inputFilename;
 
-    public GreppableTranscript(String timestampFilename,
-                               String contentFilename,
+    public GreppableTranscript(CacheKey cacheKey,
                                int nWordsPrior,
                                int nWordsAfter) {
-
-        this.timestampFilename = timestampFilename;
-        this.contentFile = new File(contentFilename);
+        this.timestampFilename = cacheKey.getTimestampFilename();
+        this.contentFile = cacheKey.getTranscriptFile();
         this.nWordsAfter = nWordsAfter;
         this.nWordsPrior = nWordsPrior;
+        this.transcript = getTranscript();
+        this.inputFilename = cacheKey.filename;
     }
 
     public void search(String searchString) {
 
-        String newlineSearchString = replaceSpacesWithNewlines(searchString);
+        Matcher matcher = getMatcher(searchString);
 
-        Pattern regex = getRegex(newlineSearchString);
-        String transcript = getTranscript();
-        Matcher matcher = regex.matcher(transcript);
+        ArrayList<String> matches = new ArrayList<String>();
+        setFileSearchHeading(matches);
 
         while (matcher.find()) {
-            String match = getMatchString(matcher, transcript);
-            System.out.println(match);
+            this.highlightedTranscript = getHighlightedTranscript(matcher);
+            String match = getMatchString(matcher);
+            matches.add(match);
         }
+        MultithreadedPrinter.add(matches);
+    }
+
+    private void setFileSearchHeading(ArrayList<String> matches) {
+        matches.add("");
+        matches.add("File: " + inputFilename);
+        matches.add("-------------");
     }
 
     private String replaceSpacesWithNewlines(String searchString) {
         return searchString.replace(' ', '\n');
     }
 
-    Pattern getRegex(String newlineSearchString) {
-        // DOTALL allows the "." in a regular expression to match newlines and spaces
-        return Pattern.compile(newlineSearchString, Pattern.DOTALL);
+    Pattern getRegex(String searchString) {
+        String newlineSearchString = replaceSpacesWithNewlines(searchString);
+        return Pattern.compile(newlineSearchString, PERIOD_MATCHES_NEWLINES_AND_SPACES);
+    }
+
+    Matcher getMatcher(String searchString) {
+        Pattern regex = getRegex(searchString);
+        String transcript = getTranscript();
+        return regex.matcher(transcript);
     }
 
     String getTranscript() {
@@ -69,26 +84,24 @@ public class GreppableTranscript implements Greppable {
         return transcript;
     }
 
-    private String getMatchString(Matcher matcher, String contentString) {
-        int startOfMatch = matcher.start();
-        int endOfMatch = matcher.end();
+    private String getMatchString(Matcher matcher) {
+        String searchResult = getSearchResult(matcher);
+        String timestamp = getTimestamp(matcher);
 
-        String highlightedMatchString = getHighlightedMatchString(contentString, matcher);
-        int searchResultStartIndex = getSearchResultStartIndex(startOfMatch, highlightedMatchString);
-        int searchResultEndIndex = getSearchResultEndIndex(endOfMatch, highlightedMatchString);
-
-        String resultWithNewlines =
-                highlightedMatchString.substring(searchResultStartIndex, searchResultEndIndex);
-        String resultWithoutNewLines = stripNewlines(resultWithNewlines);
-
-        int firstWordColumn = getColumnNumberOfFirstWord(contentString, matcher);
-        String timestamp = getTimestamp(firstWordColumn, resultWithoutNewLines);
-
-        return timestamp + " " + resultWithoutNewLines;
+        return timestamp + " " + searchResult;
     }
 
-    String getTimestamp(int firstWordColumn, String content) {
+    String getSearchResult(Matcher matcher) {
+        int searchResultStart = getSearchStart(matcher);
+        int searchResultEnd = getSearchEnd(matcher);
 
+        String resultWithNewlines = highlightedTranscript.substring(searchResultStart, searchResultEnd + 1);
+        return stripNewlines(resultWithNewlines);
+    }
+
+    String getTimestamp(Matcher matcher) {
+
+        int firstWordColumn = getColumnNumberOfFirstWord(matcher);
         BufferedReader timestampReader = null;
 
         try {
@@ -103,19 +116,19 @@ public class GreppableTranscript implements Greppable {
         return timestampList.get(firstWordColumn);
     }
 
-    int getColumnNumberOfFirstWord(String contentString, Matcher matcher) {
-        int startOfMatch = matcher.start();
-        int newlineBeforeFirstWordIndex = getSearchResultStartIndex(startOfMatch, contentString);
+    int getColumnNumberOfFirstWord(Matcher matcher) {
+        int startOfMatch = getMatchStartIndexForHighlightedMatchString(matcher);
+        int newlineBeforeFirstWordIndex = getSearchStart(matcher);
 
         if (newlineBeforeFirstWordIndex == 0) {
             return 0;
         } else {
-            return getColumnNumberFromNewlineIndex(newlineBeforeFirstWordIndex, contentString);
+            return getColumnNumberFromNewlineIndex(newlineBeforeFirstWordIndex);
         }
     }
 
-    private int getColumnNumberFromNewlineIndex(int newlineIndex, String contentString) {
-        long numberColumns = contentString
+    private int getColumnNumberFromNewlineIndex(int newlineIndex) {
+        long numberColumns = transcript
                 .substring(0, newlineIndex + 1)
                 .chars()
                 .filter(ch -> ch == '\n')
@@ -124,23 +137,31 @@ public class GreppableTranscript implements Greppable {
         return (int) numberColumns; // (zero-indexed column number of word)
     }
 
-    private int getSearchResultEndIndex(int currentIndex, String contentString) {
+    private int getSearchEnd(Matcher matcher) {
+        int matchEndIndex = getMatchEndIndexForHighlightedMatchString(matcher);
 
-        int index = currentIndex;
+        int index = matchEndIndex;
 
         for (int i = 0; i < nWordsAfter + 1; ++i) {
-            if (index >= contentString.length()) {
-                // this if statement is necessary because indexOf at the end of a string will start again at the string's beginning
-                index = contentString.length();
+            if (nextNewLineIndexOutOfStringBounds(highlightedTranscript, index)) {
+                index = highlightedTranscript.length();
                 break;
             } else {
-                index = contentString.indexOf('\n', index);
+                index = highlightedTranscript.indexOf('\n', index);
                 index = index + 1;
             }
         }
 
         index--; // oversteps by one char on the last iteration
-        return indexOrStringEnd(index, contentString);
+
+        return indexOrStringEnd(index, highlightedTranscript);
+    }
+
+    boolean nextNewLineIndexOutOfStringBounds(String contentString, int index) {
+       if (index >= contentString.length() || contentString.indexOf('\n', index) < index)
+           return true;
+       else
+           return false;
     }
 
     private int indexOrStringEnd(int index, String contentString) {
@@ -151,11 +172,13 @@ public class GreppableTranscript implements Greppable {
         }
     }
 
-    private int getSearchResultStartIndex(int currentIndex, String contentString) {
+    private int getSearchStart(Matcher matcher) {
 
-        int index = currentIndex;
+        int matchStartIndex = getMatchStartIndexForHighlightedMatchString(matcher);
+
+        int index = matchStartIndex;
         for (int i = 0; i < nWordsPrior + 1; ++i) {
-            index = contentString.lastIndexOf('\n', index);
+            index = highlightedTranscript.lastIndexOf('\n', index);
             index = index - 1;
         }
 
@@ -172,54 +195,27 @@ public class GreppableTranscript implements Greppable {
         }
     }
 
-    private String getHighlightedMatchString(String contentString, Matcher matcher) {
+    private String getHighlightedTranscript(Matcher matcher) {
         int startOfMatch = matcher.start();
         int endOfMatch = matcher.end();
 
-        return contentString.substring(0, startOfMatch) +
+        return transcript.substring(0, startOfMatch) +
                 "||" +
-                contentString.substring(startOfMatch, endOfMatch) +
+                transcript.substring(startOfMatch, endOfMatch) +
                 "||" +
-                contentString.substring(endOfMatch);
+                transcript.substring(endOfMatch);
     }
 
     private String stripNewlines(String input) {
         return input.replace("\n", " ").replace("\r", "");
     }
 
-    @Override
-    public void storeTranscriptInLocation(File transcriptFile) {
-        if (transcriptFile.exists())
-            transcriptFile.delete();
-        else {
-            File transcriptResult = contentFile;
-
-            Path destination = Paths.get(transcriptFile.toString());
-            Path source = Paths.get(transcriptResult.toString());
-
-            try {
-                Path result = Files.move(source, destination);
-            } catch (java.io.IOException e) {
-                e.printStackTrace();
-            }
-        }
+    private int getMatchEndIndexForHighlightedMatchString(Matcher matcher) {
+        int newLength = highlightedTranscript.length() - transcript.length();
+        return matcher.end() + newLength;
     }
 
-    @Override
-    public void storeTimestampsInLocation(File timestampFile) {
-        if (timestampFile.exists())
-            timestampFile.delete();
-        else {
-            File timestampResult = new File(timestampFilename);
-
-            Path destination = Paths.get(timestampFile.toString());
-            Path source = Paths.get(timestampResult.toString());
-
-            try {
-                Path result = Files.move(source, destination);
-            } catch (java.io.IOException e) {
-                e.printStackTrace();
-            }
-        }
+    private int getMatchStartIndexForHighlightedMatchString(Matcher matcher) {
+        return matcher.start();
     }
 }

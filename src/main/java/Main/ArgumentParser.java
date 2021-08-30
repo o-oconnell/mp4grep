@@ -3,6 +3,8 @@ package Main;
 import java.util.LinkedList;
 import java.util.List;
 
+import Arguments.GrepperArguments;
+import Arguments.SpeechToTextArguments;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Option;
 import picocli.CommandLine;
@@ -37,6 +39,12 @@ public class ArgumentParser {
 
         @Option(names = {"--count", "-c"}, description = "Output a count of matching words/phrases only")
         public boolean count;
+
+        @Option(names = {"--before", "-b"}, description = "Words to print before a match (default 5)")
+        public int wordsToPrintBeforeMatch = 5;
+
+        @Option(names = {"--after", "-a"}, description = "Words to print after a match (default 5)")
+        public int wordsToPrintAfterMatch = 5;
     }
 
     public ArgumentParser() {
@@ -44,29 +52,18 @@ public class ArgumentParser {
     }
 
     public Grepper getGrepperForArgs(String[] args) {
-
         parseArguments(args);
         return createGrepper();
     }
 
     private void parseArguments(String[] args) {
-
         CommandLine arguments = new CommandLine(argObject);
         arguments.parseArgs(args);
     }
 
     private Grepper createGrepper() {
-
-        List<String> inputFilesDirs = getListOfFilesDirs(argObject.filesAndDirectories);
-        SpeechToText speechToText = createSpeechToText();
-
-
-        return new Grepper.GrepperBuilder()
-                .speechToText(speechToText)
-                .searchString(argObject.searchString)
-                .isRegexSearch(argObject.regex)
-                .inputFilesDirs(inputFilesDirs)
-                .build();
+        GrepperArguments grepperArguments = getGrepperArguments();
+        return new Grepper(grepperArguments);
     }
 
     private List<String> getListOfFilesDirs(List<String> inputFilesDirs) {
@@ -85,29 +82,33 @@ public class ArgumentParser {
         }
     }
 
-    private List<String> convertInputToList(String inputFilesDirs) {
-
-        System.out.println(inputFilesDirs);
-        String[] splitBySpaces = inputFilesDirs.split(" ");
-
-        List<String> result = null;
-
-        for (String s : splitBySpaces) {
-            result.add(s);
-        }
-
-        return result;
+    private SpeechToText getSpeechToTextForLanguage(String language) {
+        return new VoskSpeechToText();
     }
 
     private boolean stringArgIsSet(String arg) {
         return arg != null;
     }
 
-    // TODO: select different speechtotext based on lang, print error message and exit if matching engine for language doesn't exist
-    // (will require downloading models if they are not already installed)
-    private SpeechToText getSpeechToTextForLanguage(String language) {
-        return new VoskSpeechToText();
+    private SpeechToTextArguments getSpeechToTextArguments() {
+        return SpeechToTextArguments
+                .builder()
+                .wordsToPrintBeforeMatch(argObject.wordsToPrintBeforeMatch)
+                .wordsToPrintAfterMatch(argObject.wordsToPrintAfterMatch)
+                .build();
     }
 
+    private GrepperArguments getGrepperArguments() {
+        List<String> inputFilesDirs = getListOfFilesDirs(argObject.filesAndDirectories);
+        SpeechToText speechToText = createSpeechToText();
+        SpeechToTextArguments speechToTextArguments = getSpeechToTextArguments();
 
+        return GrepperArguments
+                .builder()
+                .speechToText(speechToText)
+                .searchString(argObject.searchString)
+                .inputFilesDirs(inputFilesDirs)
+                .speechToTextArguments(speechToTextArguments)
+                .build();
+    }
 }

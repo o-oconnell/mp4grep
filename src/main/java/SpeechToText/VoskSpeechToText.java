@@ -1,5 +1,6 @@
 package SpeechToText;
 
+import Arguments.SpeechToTextArguments;
 import Search.CacheKey;
 import Search.Greppable;
 
@@ -31,18 +32,10 @@ import java.nio.file.StandardOpenOption;
 
 public class VoskSpeechToText implements SpeechToText {
 
-    private static final String TEMP_AUDIO_STORAGE_FILE = ".mp4grep_tmp";
     private static final int SAMPLING_RATE = 16000;
-    private static final String MODEL_DIRECTORY = "model";
+    private static final String MODEL_DIRECTORY = "model/vosk-model-LARGE-en-uszz";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
-    private static final int MAX_TIMESTAMP_LENGTH = 5;
-    private static final String TEMP_TRANSCRIPTION_FILE = ".transcription";
-    private static final String TEMP_TIMESTAMP_FILE = ".timestamp";
-
-    // NOTE: could have identified the problem with the audiofilename earlier by seeing the low cohesion
-    // of having a member variable that is essentially only used once (after being passed through multiple functions)
-
-    // Absolutely never do: have an instance variable with a setter method (except for objects that just hold data) <- antipattern
+    private CacheKey cacheKey;
 
     public VoskSpeechToText() {
         voskSetup();
@@ -53,16 +46,17 @@ public class VoskSpeechToText implements SpeechToText {
     }
 
     @Override
-    public Greppable getGreppableResult(CacheKey cacheKey) {
+    public Greppable getGreppableResult(CacheKey cacheKey, SpeechToTextArguments arguments) {
 
-        // TODO: take DTO as input to determine the construction of the greppable
+        this.cacheKey = cacheKey;
+        System.out.println("inside vosk. Timestamp file is " + cacheKey.getTimestampFilename() + " transcript file is " + cacheKey.getTranscriptFilename() + " thread id is " + Thread.currentThread().getId() + " filename to search is " + cacheKey.filename + " object id is " + System.identityHashCode(this));
 
         String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheKey.filename);
-
         sendAudioToTimestampedFile(convertedAudioFile);
 
-        int nWordsPrior = 10, nWordsAfter = 100;
-        return new GreppableTranscript(TEMP_TIMESTAMP_FILE, TEMP_TRANSCRIPTION_FILE, nWordsPrior, nWordsAfter);
+        return new GreppableTranscript(cacheKey,
+                                        arguments.wordsToPrintBeforeMatch,
+                                        arguments.wordsToPrintAfterMatch);
     }
 
     private void sendAudioToTimestampedFile(String audioFileName) {
@@ -70,7 +64,7 @@ public class VoskSpeechToText implements SpeechToText {
         InputStream audioInputStream = createInputStream(audioFileName);
         Recognizer recognizer = createRecognizer();
 
-        clearTempFiles();
+        createOutputFiles();
         printMainRecognizerResults(recognizer, audioInputStream);
         printFinalRecognizerResult(recognizer);
     }
@@ -120,17 +114,9 @@ public class VoskSpeechToText implements SpeechToText {
         }
     }
 
-    private void clearTempFiles() {
-        try {
-            File transcript = new File(TEMP_TRANSCRIPTION_FILE);
-            File timestamps = new File(TEMP_TIMESTAMP_FILE);
-            transcript.delete();
-            transcript.createNewFile();
-            timestamps.delete();
-            timestamps.createNewFile();
-        } catch (IOException e) {
-            System.out.println("Error creating temporary sound file");
-        }
+    private void createOutputFiles() {
+        createTranscriptFile();
+        createTimestampFile();
     }
 
     private void printMainRecognizerResults(Recognizer recognizer, InputStream audioInputStream) {
@@ -203,7 +189,8 @@ public class VoskSpeechToText implements SpeechToText {
 
     private void putWordInTempFile(String word) {
         try {
-            Path outputFile = Path.of(TEMP_TRANSCRIPTION_FILE);
+            String transcriptFilename = cacheKey.getTranscriptFilename();
+            Path outputFile = Path.of(transcriptFilename);
             Files.writeString(outputFile, appendNewlineTo(word), StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Error printing sound translation to temporary file");
@@ -212,10 +199,33 @@ public class VoskSpeechToText implements SpeechToText {
 
     private void putTimestampInTempFile(String timestamp) {
         try {
-            Path outputFile = Path.of(TEMP_TIMESTAMP_FILE);
+            String timestampFilename = cacheKey.getTimestampFilename();
+            Path outputFile = Path.of(timestampFilename);
             Files.writeString(outputFile, appendNewlineTo(timestamp), StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Error printing sound translation to temporary file");
+        }
+    }
+
+    private void createTimestampFile() {
+        try {
+            File timestamps = new File(cacheKey.getTimestampFilename());
+            System.out.println("Creating timestamp file:" + timestamps.toString());
+            timestamps.delete();
+            timestamps.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Error creating timestamp file.");
+        }
+    }
+
+    private void createTranscriptFile() {
+        try {
+            File transcript = new File(cacheKey.getTranscriptFilename());
+            System.out.println("Creating transcript file:" + transcript.toString() + " thread id is " + Thread.currentThread().getId() + " file to search is " + cacheKey.filename + " object id is " + System.identityHashCode(this));
+            transcript.delete();
+            transcript.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Error creating transcript file.");
         }
     }
 

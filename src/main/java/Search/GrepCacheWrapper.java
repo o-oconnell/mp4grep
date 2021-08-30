@@ -1,6 +1,10 @@
 package Search;
 
+import Arguments.GrepperArguments;
+import Arguments.SpeechToTextArguments;
+import Output.MultithreadedPrinter;
 import SpeechToText.SpeechToText;
+import SpeechToText.VoskSpeechToText;
 
 import java.io.File;
 
@@ -9,70 +13,39 @@ public class GrepCacheWrapper {
     private static final String CACHE_DIRECTORY = ".cache";
     private static final String TRANSCRIPT_FILE_EXTENSION = ".transcript";
     private static final String TIMESTAMP_FILE_EXTENSION = ".timestamp";
-    SpeechToText speechToText;
 
-    public GrepCacheWrapper(SpeechToText speechToText) {
-        this.speechToText = speechToText;
+    private GrepperArguments arguments;
+    private SpeechToText speechToText;
+    private SpeechToTextArguments speechToTextArguments;
+
+    private int wordsToPrintAfterMatch;
+    private int wordsToPrintBeforeMatch;
+
+    public GrepCacheWrapper(GrepperArguments arguments) {
+        this.arguments = arguments;
+        // this.speechToText = arguments.speechToText;
+        this.speechToTextArguments = arguments.speechToTextArguments;
+        this.wordsToPrintAfterMatch = speechToTextArguments.wordsToPrintAfterMatch;
+        this.wordsToPrintBeforeMatch = speechToTextArguments.wordsToPrintBeforeMatch;
     }
 
     public void search(String file, String searchString) {
-
+        this.speechToText = new VoskSpeechToText();
         CacheKey cacheKey = new CacheKey(file, speechToText);
+        System.out.println("Creating new cache key for file: " + file);
+        Greppable grep = getGreppable(cacheKey);
+        grep.search(searchString);
+    }
 
-        if (cachedTranscriptExists(cacheKey)) {
-            Greppable grep = getGreppableFromCacheKey(cacheKey);
-            grep.search(searchString);
+    private Greppable getGreppable(CacheKey cacheKey) {
+        if (cacheKey.cachedFilesExist()) {
+            return getGreppableFromCacheKey(cacheKey);
         } else {
-            Greppable grep = speechToText.getGreppableResult(cacheKey);
-            grep.search(searchString);
-
-            // TODO: This is janky. Get the sound engine to use the output formatter directly and print to the correct location.
-            grep.storeTranscriptInLocation(getTranscriptFile(cacheKey));
-            grep.storeTimestampsInLocation(getTimestampFile(cacheKey));
+            return speechToText.getGreppableResult(cacheKey, speechToTextArguments);
         }
-    }
-
-    private boolean cachedTranscriptExists(CacheKey cacheKey) {
-
-        File transcriptFile = getTranscriptFile(cacheKey);
-        File timestampFile = getTimestampFile(cacheKey);
-
-        if (transcriptFile.exists() && timestampFile.exists()) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private File getTranscriptFile(CacheKey cacheKey) {
-        String hash = getHash(cacheKey);
-        return new File(getCachedFileLocation(hash + TRANSCRIPT_FILE_EXTENSION));
-    }
-
-    private File getTimestampFile(CacheKey cacheKey) {
-        String hash = getHash(cacheKey);
-        return new File(getCachedFileLocation(hash + TIMESTAMP_FILE_EXTENSION));
-    }
-
-    private String getCachedFileLocation(String filename) {
-        return CACHE_DIRECTORY + "/" + filename;
     }
 
     private Greppable getGreppableFromCacheKey(CacheKey cacheKey) {
-        File timestamps = getTimestampFile(cacheKey);
-        File transcript = getTranscriptFile(cacheKey);
-
-        String timestampFile = timestamps.toString();
-        String transcriptFile = transcript.toString();
-
-        return new GreppableTranscript(timestampFile, transcriptFile, 100, 100);
-    }
-
-    public static String getHash(CacheKey cacheKey) {
-        Object speechToText = cacheKey.speechToText;
-        String speechToTextName = speechToText.getClass().getName();
-        String preHashString = cacheKey.filename + cacheKey.lastModified + speechToTextName;
-
-        return String.valueOf(preHashString.hashCode());
+        return new GreppableTranscript(cacheKey, wordsToPrintBeforeMatch, wordsToPrintAfterMatch);
     }
 }
