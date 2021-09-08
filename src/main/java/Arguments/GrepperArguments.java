@@ -1,62 +1,49 @@
 package Arguments;
 
-import SpeechToText.SpeechToText;
-
-import java.util.List;
-
 public class GrepperArguments {
+    public TranscriptArguments transcriptArguments;
+    public SearchArguments searchArguments;
+    public PrintArguments printArguments;
 
-     public SpeechToText speechToText;
-     public String searchString;
-     public List<String> inputFilesDirs;
-     public SpeechToTextArguments speechToTextArguments;
+    GrepperArguments(TranscriptArguments transcriptArguments, SearchArguments searchArguments, PrintArguments printArguments) {
+        this.transcriptArguments = transcriptArguments;
+        this.searchArguments = searchArguments;
+        this.printArguments = printArguments;
+    }
 
-     GrepperArguments(SpeechToText speechToText, String searchString, List<String> inputFilesDirs, SpeechToTextArguments speechToTextArguments) {
-          this.speechToText = speechToText;
-          this.searchString = searchString;
-          this.inputFilesDirs = inputFilesDirs;
-          this.speechToTextArguments = speechToTextArguments;
-     }
+    public static GrepperArgumentsBuilder builder() {
+        return new GrepperArgumentsBuilder();
+    }
 
-     public static GrepperArgumentsBuilder builder() {
-          return new GrepperArgumentsBuilder();
-     }
+    public static class GrepperArgumentsBuilder {
+        private TranscriptArguments transcriptArguments;
+        private SearchArguments searchArguments;
+        private PrintArguments printArguments;
 
-     public static class GrepperArgumentsBuilder {
-          private SpeechToText speechToText;
-          private String searchString;
-          private List<String> inputFilesDirs;
-          private SpeechToTextArguments speechToTextArguments;
+        GrepperArgumentsBuilder() {
+        }
 
-          GrepperArgumentsBuilder() {
-          }
+        public GrepperArgumentsBuilder transcriptArguments(TranscriptArguments transcriptArguments) {
+            this.transcriptArguments = transcriptArguments;
+            return this;
+        }
 
-          public GrepperArgumentsBuilder speechToText(SpeechToText speechToText) {
-               this.speechToText = speechToText;
-               return this;
-          }
+        public GrepperArgumentsBuilder searchArguments(SearchArguments searchArguments) {
+            this.searchArguments = searchArguments;
+            return this;
+        }
 
-          public GrepperArgumentsBuilder searchString(String searchString) {
-               this.searchString = searchString;
-               return this;
-          }
+        public GrepperArgumentsBuilder printArguments(PrintArguments printArguments) {
+            this.printArguments = printArguments;
+            return this;
+        }
 
-          public GrepperArgumentsBuilder inputFilesDirs(List<String> inputFilesDirs) {
-               this.inputFilesDirs = inputFilesDirs;
-               return this;
-          }
+        public GrepperArguments build() {
+            return new GrepperArguments(transcriptArguments, searchArguments, printArguments);
+        }
 
-          public GrepperArgumentsBuilder speechToTextArguments(SpeechToTextArguments speechToTextArguments) {
-               this.speechToTextArguments = speechToTextArguments;
-               return this;
-          }
-
-          public GrepperArguments build() {
-               return new GrepperArguments(speechToText, searchString, inputFilesDirs, speechToTextArguments);
-          }
-
-          public String toString() {
-               return "GrepperArguments.GrepperArgumentsBuilder(speechToText=" + this.speechToText + ", searchString=" + this.searchString + ", inputFilesDirs=" + this.inputFilesDirs + ", speechToTextArguments=" + this.speechToTextArguments + ")";
-          }
-     }
+        public String toString() {
+            return "GrepperArguments.GrepperArgumentsBuilder(transcriptArguments=" + this.transcriptArguments + ", searchArguments=" + this.searchArguments + ", printArguments=" + this.printArguments + ")";
+        }
+    }
 }

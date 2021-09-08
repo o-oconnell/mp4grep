@@ -1,21 +1,18 @@
-package Search;
-
-import SpeechToText.SpeechToText;
+package Transcription;
 
 import java.io.File;
 
 public class CacheKey {
-
     private static final String CACHE_DIRECTORY = ".cache";
     private static final String TRANSCRIPT_FILE_EXTENSION = ".transcript";
     private static final String TIMESTAMP_FILE_EXTENSION = ".timestamp";
 
     public String filename;
     public String lastModified;
-    public SpeechToText speechToText;
+    public VoskAdapter speechToText;
     private String hash;
 
-    public CacheKey(String filename, SpeechToText speechToText) {
+    public CacheKey(String filename, VoskAdapter speechToText) {
         this.filename = filename;
         this.lastModified = getLastModified(filename);
         this.speechToText = speechToText;

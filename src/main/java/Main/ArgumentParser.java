@@ -1,26 +1,22 @@
 package Main;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import Arguments.GrepperArguments;
-import Arguments.SpeechToTextArguments;
+import Arguments.PrintArguments;
+import Arguments.SearchArguments;
+import Arguments.TranscriptArguments;
+import Transcription.VoskAdapter;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Option;
 import picocli.CommandLine;
 
-import Search.Grepper;
-import SpeechToText.SpeechToText;
-import SpeechToText.VoskSpeechToText;
-
 public class ArgumentParser {
-
     private final Args argObject;
 
     private class Args {
-
         @Parameters(index = "0")
-        String searchString;
+        String search;
 
         @Parameters(index = "1..*")
         List<String> filesAndDirectories;
@@ -66,49 +62,44 @@ public class ArgumentParser {
         return new Grepper(grepperArguments);
     }
 
-    private List<String> getListOfFilesDirs(List<String> inputFilesDirs) {
-        if (inputFilesDirs == null)
-            return new LinkedList<String>();
-        else
-            return inputFilesDirs;
-    }
-
-    private SpeechToText createSpeechToText() {
-
-        if (stringArgIsSet(argObject.language)) {
-            return getSpeechToTextForLanguage(argObject.language);
-        } else {
-            return new VoskSpeechToText();
-        }
-    }
-
-    private SpeechToText getSpeechToTextForLanguage(String language) {
-        return new VoskSpeechToText();
-    }
-
-    private boolean stringArgIsSet(String arg) {
-        return arg != null;
-    }
-
-    private SpeechToTextArguments getSpeechToTextArguments() {
-        return SpeechToTextArguments
-                .builder()
-                .wordsToPrintBeforeMatch(argObject.wordsToPrintBeforeMatch)
-                .wordsToPrintAfterMatch(argObject.wordsToPrintAfterMatch)
-                .build();
-    }
-
     private GrepperArguments getGrepperArguments() {
-        List<String> inputFilesDirs = getListOfFilesDirs(argObject.filesAndDirectories);
-        SpeechToText speechToText = createSpeechToText();
-        SpeechToTextArguments speechToTextArguments = getSpeechToTextArguments();
+        TranscriptArguments transcriptArguments = getTranscriptArguments();
+        SearchArguments searchArguments = getSearchArguments();
+        PrintArguments printArguments = getPrintArguments();
 
         return GrepperArguments
                 .builder()
+                .transcriptArguments(transcriptArguments)
+                .searchArguments(searchArguments)
+                .printArguments(printArguments)
+                .build();
+    }
+
+    private TranscriptArguments getTranscriptArguments() {
+        VoskAdapter speechToText = new VoskAdapter();
+        List<String> files = FileParser.getFileList(argObject.filesAndDirectories);
+
+        return TranscriptArguments
+                .builder()
+                .files(files)
                 .speechToText(speechToText)
-                .searchString(argObject.searchString)
-                .inputFilesDirs(inputFilesDirs)
-                .speechToTextArguments(speechToTextArguments)
+                .search(argObject.search)
+                .build();
+    }
+
+    private SearchArguments getSearchArguments() {
+        return SearchArguments
+                .builder()
+                .search(argObject.search)
+                .build();
+    }
+
+    private PrintArguments getPrintArguments() {
+        return PrintArguments
+                .builder()
+                .wordsAfterMatch(argObject.wordsToPrintAfterMatch)
+                .wordsBeforeMatch(argObject.wordsToPrintBeforeMatch)
+                .search(argObject.search)
                 .build();
     }
 }

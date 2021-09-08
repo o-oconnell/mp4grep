@@ -1,4 +1,4 @@
-package SpeechToText;
+package Transcription;
 
 import ws.schild.jave.Encoder;
 import ws.schild.jave.EncoderException;
@@ -7,25 +7,46 @@ import ws.schild.jave.encode.AudioAttributes;
 import ws.schild.jave.encode.EncodingAttributes;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class VoskConverter {
 
     private static final int VOSK_ACCEPTED_SAMPLING_RATE = 16000;
     private static final int VOSK_NUMBER_ACCEPTED_CHANNELS = 1;
     private static final String VOSK_AUDIO_FILE_FORMAT = "wav";
-    private static String VOSK_AUDIO_CODEC = "pcm_s16le";
+    private static final String VOSK_AUDIO_CODEC = "pcm_s16le";
+    private static final String CONVERTED_AUDIO_FILE_DIRECTORY = ".converted";
 
     public static String convertToVoskFormat(String sourceFile) {
+        createConversionDirectory();
         String targetFile = makeTargetFilename(sourceFile);
         convertAndWriteToTargetFile(sourceFile, targetFile);
         return targetFile;
+    }
+
+    private static void createConversionDirectory() {
+        File conversionDirectory = new File(CONVERTED_AUDIO_FILE_DIRECTORY);
+        if (!conversionDirectory.exists()) {
+            createNewConversionDirectory();
+        }
+    }
+
+    private static void createNewConversionDirectory() {
+        Path conversionDirPath = Path.of(CONVERTED_AUDIO_FILE_DIRECTORY);
+        try {
+            Files.createDirectory(conversionDirPath);
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static String makeTargetFilename(String file) {
         int extensionStartIndex = file.lastIndexOf(".") + 1;
         String nameWithoutExtension = file.substring(0, extensionStartIndex - 1);
         String result = nameWithoutExtension + "." + VOSK_AUDIO_FILE_FORMAT;
-        return "converted_" + result;
+        return CONVERTED_AUDIO_FILE_DIRECTORY + "/" + result;
     }
 
     private static void convertAndWriteToTargetFile(String sourceFilename, String targetFilename) {
@@ -58,7 +79,7 @@ public class VoskConverter {
         try {
             encoder.encode(instance, target, attributes);
         } catch (EncoderException e) {
-            System.out.println("Error converting input file to VOSK-compatible WAV format.");
+            System.out.println("Error converting files file to VOSK-compatible WAV format.");
             e.printStackTrace();
         }
     }

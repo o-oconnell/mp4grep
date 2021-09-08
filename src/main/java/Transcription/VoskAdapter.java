@@ -1,43 +1,30 @@
-package SpeechToText;
+package Transcription;
 
-import Arguments.SpeechToTextArguments;
-import Search.CacheKey;
-import Search.Greppable;
-
-import Search.GreppableTranscript;
+import java.Search.Searchable;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.vosk.LibVosk;
 import org.vosk.LogLevel;
 import org.vosk.Model;
 import org.vosk.Recognizer;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
-
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.File;
-
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-
-public class VoskSpeechToText implements SpeechToText {
-
+public class VoskAdapter {
     private static final int SAMPLING_RATE = 16000;
     private static final String MODEL_DIRECTORY = "model/vosk-model-LARGE-en-uszz";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
     private CacheKey cacheKey;
 
-    public VoskSpeechToText() {
+    public VoskAdapter() {
         voskSetup();
     }
 
@@ -45,22 +32,16 @@ public class VoskSpeechToText implements SpeechToText {
         LibVosk.setLogLevel(LogLevel.WARNINGS);
     }
 
-    @Override
-    public Greppable getGreppableResult(CacheKey cacheKey, SpeechToTextArguments arguments) {
-
+    public Searchable getSearchableResult(CacheKey cacheKey) {
         this.cacheKey = cacheKey;
-        System.out.println("inside vosk. Timestamp file is " + cacheKey.getTimestampFilename() + " transcript file is " + cacheKey.getTranscriptFilename() + " thread id is " + Thread.currentThread().getId() + " filename to search is " + cacheKey.filename + " object id is " + System.identityHashCode(this));
 
         String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheKey.filename);
         sendAudioToTimestampedFile(convertedAudioFile);
 
-        return new GreppableTranscript(cacheKey,
-                                        arguments.wordsToPrintBeforeMatch,
-                                        arguments.wordsToPrintAfterMatch);
+        return new Searchable(cacheKey);
     }
 
     private void sendAudioToTimestampedFile(String audioFileName) {
-
         InputStream audioInputStream = createInputStream(audioFileName);
         Recognizer recognizer = createRecognizer();
 
@@ -70,7 +51,6 @@ public class VoskSpeechToText implements SpeechToText {
     }
 
     private InputStream createInputStream(String audioFileName) {
-
         InputStream AudioInputStream = null;
         try {
             FileInputStream fileInput = getFileInputStream(audioFileName);
@@ -89,7 +69,7 @@ public class VoskSpeechToText implements SpeechToText {
         try {
             inputStream = new FileInputStream(audioFileName);
         } catch (java.io.FileNotFoundException e) {
-            System.out.println("Failed to create new input stream from audio filename");
+            System.out.println("Failed to create new files stream from audio filename");
         }
 
         return inputStream;
@@ -145,7 +125,7 @@ public class VoskSpeechToText implements SpeechToText {
         try {
             result = audioInputStream.read(inputBuffer);
         } catch (java.io.IOException e) {
-            System.out.println("Error reading bytes from the audio input stream (derived from the audio file)");
+            System.out.println("Error reading bytes from the audio files stream (derived from the audio file)");
             e.printStackTrace();
         }
         return result;
@@ -194,6 +174,7 @@ public class VoskSpeechToText implements SpeechToText {
             Files.writeString(outputFile, appendNewlineTo(word), StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Error printing sound translation to temporary file");
+            e.printStackTrace();
         }
     }
 
@@ -210,18 +191,17 @@ public class VoskSpeechToText implements SpeechToText {
     private void createTimestampFile() {
         try {
             File timestamps = new File(cacheKey.getTimestampFilename());
-            System.out.println("Creating timestamp file:" + timestamps.toString());
             timestamps.delete();
             timestamps.createNewFile();
         } catch (IOException e) {
-            System.out.println("Error creating timestamp file.");
+            System.out.println("Error creating timestamp file: " + cacheKey.getTimestampFilename());
+            e.printStackTrace();
         }
     }
 
     private void createTranscriptFile() {
         try {
             File transcript = new File(cacheKey.getTranscriptFilename());
-            System.out.println("Creating transcript file:" + transcript.toString() + " thread id is " + Thread.currentThread().getId() + " file to search is " + cacheKey.filename + " object id is " + System.identityHashCode(this));
             transcript.delete();
             transcript.createNewFile();
         } catch (IOException e) {
