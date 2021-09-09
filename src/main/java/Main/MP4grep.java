@@ -1,6 +1,6 @@
 package Main;
 
-public class AVgrep {
+public class MP4grep {
     public static void main(String[] args) {
         ArgumentParser parser = new ArgumentParser();
         Grepper grepper = parser.getGrepperForArgs(args);
