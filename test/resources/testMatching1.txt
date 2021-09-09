@@ -1,9 +1,0 @@
-this
-is
-my
-architectural
-style
-software
-repository
-architectural
-repo

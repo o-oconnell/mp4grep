@@ -1,4 +1,4 @@
-package java.Search;
+package Search;
 
 import Transcription.CacheKey;
 

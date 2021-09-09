@@ -1,6 +1,5 @@
 package Search;
 
-import java.Search.Searchable;
 import Print.Printable;
 import Print.IntegerPair;
 import org.apache.commons.io.FileUtils;

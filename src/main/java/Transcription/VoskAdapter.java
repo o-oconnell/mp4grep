@@ -1,6 +1,6 @@
 package Transcription;
 
-import java.Search.Searchable;
+import Search.Searchable;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

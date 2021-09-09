@@ -2,7 +2,6 @@ package Search;
 
 import Arguments.SearchArguments;
 import Print.Printable;
-import java.Search.Searchable;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -1,7 +1,7 @@
 package Transcription;
 
 import Arguments.TranscriptArguments;
-import java.Search.Searchable;
+import Search.Searchable;
 
 import java.util.LinkedList;
 import java.util.List;

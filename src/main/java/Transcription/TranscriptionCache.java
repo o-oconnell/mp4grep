@@ -1,6 +1,6 @@
 package Transcription;
 
-import java.Search.Searchable;
+import Search.Searchable;
 
 public class TranscriptionCache {
     private VoskAdapter speechToText;
