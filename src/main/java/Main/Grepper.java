@@ -7,7 +7,7 @@ import Arguments.TranscriptArguments;
 import Print.PrintAdapter;
 import Print.Printable;
 import Search.SearchAdapter;
-import java.Search.Searchable;
+import Search.Searchable;
 import Transcription.TranscriptionAdapter;
 
 import java.util.List;
