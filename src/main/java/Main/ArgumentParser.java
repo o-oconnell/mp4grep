@@ -2,10 +2,12 @@ package Main;
 
 import java.util.List;
 
-import Arguments.GrepperArguments;
 import Arguments.PrintArguments;
 import Arguments.SearchArguments;
 import Arguments.TranscriptArguments;
+import Print.PrintAdapter;
+import Search.SearchAdapter;
+import Transcription.TranscriptionAdapter;
 import Transcription.VoskAdapter;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Option;
@@ -57,21 +59,20 @@ public class ArgumentParser {
         arguments.parseArgs(args);
     }
 
-    private Grepper createGrepper() {
-        GrepperArguments grepperArguments = getGrepperArguments();
-        return new Grepper(grepperArguments);
-    }
-
-    private GrepperArguments getGrepperArguments() {
+    public Grepper createGrepper() {
         TranscriptArguments transcriptArguments = getTranscriptArguments();
         SearchArguments searchArguments = getSearchArguments();
         PrintArguments printArguments = getPrintArguments();
 
-        return GrepperArguments
+        TranscriptionAdapter transcriptionAdapter = new TranscriptionAdapter(transcriptArguments);
+        SearchAdapter searchAdapter = new SearchAdapter(searchArguments);
+        PrintAdapter printAdapter = new PrintAdapter(printArguments);
+
+        return Grepper
                 .builder()
-                .transcriptArguments(transcriptArguments)
-                .searchArguments(searchArguments)
-                .printArguments(printArguments)
+                .transcriptionAdapter(transcriptionAdapter)
+                .searchAdapter(searchAdapter)
+                .printAdapter(printAdapter)
                 .build();
     }
 

@@ -6,9 +6,9 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -22,43 +22,41 @@ public class Searcher {
     public Printable getPrintableSearchResult(Searchable searchable, String search) {
         String transcript = getTranscript(searchable);
         String timestamps = getTimestamps(searchable.timestampFile);
-        List<IntegerPair> matches = getMatches(transcript, search);
-        TreeMap<Integer, IntegerPair> transcriptTimestampIndices = mapTranscriptToTimestamps(transcript, timestamps);
 
-        return new Printable(matches, transcript, timestamps, searchable.filename, transcriptTimestampIndices);
+        return Printable
+                .builder()
+                .transcript(transcript)
+                .filename(searchable.filename)
+                .matchIndices(getMatches(transcript, search))
+                .transcriptTimestamps(mapTranscriptToTimestamps(transcript, timestamps))
+                .build();
     }
 
-    private TreeMap<Integer, IntegerPair> mapTranscriptToTimestamps(String transcript, String timestamps) {
-        TreeMap<Integer, IntegerPair> transcriptTimestampIndices = new TreeMap<>();
+    private TreeMap<Integer, String> mapTranscriptToTimestamps(String transcript, String timestampsText) {
+        TreeMap<Integer, String> transcriptTimestampIndices = new TreeMap<>();
+        List<Integer> transcriptDelimiterIndices = getDelimiterIndices(transcript);
+        List<String> timestamps = getTimestamps(timestampsText);
 
-        int timestampStart = 0;
-        int timestampEnd = getNextDelimiterIndex(timestampStart, timestamps);
-
-        // base case for the first transcript word, which does not have a prior space
-        IntegerPair firstTimestamp = new IntegerPair(timestampStart, timestampEnd);
-        transcriptTimestampIndices.put(0, firstTimestamp);
-
-        for (int transcriptIndex = 0; transcriptIndex < transcript.length(); ++transcriptIndex) {
-            if (transcript.charAt(transcriptIndex) == DELIMITER) {
-                timestampStart = timestampEnd + 1;
-                timestampEnd = getNextDelimiterIndex(timestampStart, timestamps);
-                IntegerPair timestamp = new IntegerPair(timestampStart, timestampEnd);
-
-                if (timestampStart < timestampEnd) {
-                    transcriptTimestampIndices.put(transcriptIndex, timestamp);
-                }
-            }
-        }
+        IntStream.range(0, timestamps.size() - 1)
+                .boxed()
+                .forEach(i -> transcriptTimestampIndices.put(
+                        transcriptDelimiterIndices.get(i),
+                        timestamps.get(i)
+                ));
         return transcriptTimestampIndices;
     }
 
-    int getNextDelimiterIndex(int current, String string) {
-        int nextDelimiter = string.indexOf(DELIMITER, current + 1);
-        if (nextDelimiter > current && nextDelimiter < string.length()) {
-            return nextDelimiter;
-        } else {
-            return string.length() - 1;
-        }
+    private List<Integer> getDelimiterIndices(String string) {
+        List<Integer> indices = IntStream.range(0, string.length()-1)
+                .boxed()
+                .filter(i -> string.charAt(i) == ' ')
+                .collect(Collectors.toList());
+        indices.add(0, 0);
+        return indices;
+    }
+
+    private List<String> getTimestamps(String timestampsText) {
+        return Arrays.asList(timestampsText.split(" "));
     }
 
     private String getTranscript(Searchable searchable) {
@@ -72,17 +70,32 @@ public class Searcher {
     }
 
     private List<IntegerPair> getMatches(String transcript, String search) {
-
         List<IntegerPair> result = new LinkedList<IntegerPair>();
         Pattern pattern = Pattern.compile(search);
         Matcher matcher = pattern.matcher(transcript);
 
         while (matcher.find()) {
-            int start = matcher.start();
-            int end = matcher.end();
+            int start = stripLeadingDelimiters(matcher.start(), transcript);
+            int end = stripTrailingDelimiters(matcher.end(), transcript);
             result.add(new IntegerPair(start, end));
         }
         return result;
+    }
+
+    private int stripLeadingDelimiters(int start, String transcript) {
+        int newIndex = start;
+        while (transcript.charAt(newIndex) == DELIMITER && newIndex < transcript.length() - 1) {
+            newIndex++;
+        }
+        return newIndex;
+    }
+
+    private int stripTrailingDelimiters(int end, String transcript) {
+        int newIndex = end;
+        while (transcript.charAt(newIndex) == DELIMITER && newIndex > 0) {
+            newIndex--;
+        }
+        return newIndex;
     }
 
     private String getFileToString(File file) {

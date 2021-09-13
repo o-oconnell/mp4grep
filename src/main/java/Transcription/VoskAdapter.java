@@ -32,22 +32,19 @@ public class VoskAdapter {
         LibVosk.setLogLevel(LogLevel.WARNINGS);
     }
 
-    public Searchable getSearchableResult(CacheKey cacheKey) {
+    public void transcribeAudio(CacheKey cacheKey) {
         this.cacheKey = cacheKey;
-
         String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheKey.filename);
-        sendAudioToTimestampedFile(convertedAudioFile);
-
-        return new Searchable(cacheKey);
+        writeTranscriptAndTimestamps(convertedAudioFile);
     }
 
-    private void sendAudioToTimestampedFile(String audioFileName) {
+    private void writeTranscriptAndTimestamps(String audioFileName) {
         InputStream audioInputStream = createInputStream(audioFileName);
         Recognizer recognizer = createRecognizer();
 
         createOutputFiles();
-        printMainRecognizerResults(recognizer, audioInputStream);
-        printFinalRecognizerResult(recognizer);
+        writeMainRecognizerResults(recognizer, audioInputStream);
+        writeFinalRecognizerResult(recognizer);
     }
 
     private InputStream createInputStream(String audioFileName) {
@@ -64,14 +61,12 @@ public class VoskAdapter {
     }
 
     private FileInputStream getFileInputStream(String audioFileName) {
-
         FileInputStream inputStream = null;
         try {
             inputStream = new FileInputStream(audioFileName);
         } catch (java.io.FileNotFoundException e) {
             System.out.println("Failed to create new files stream from audio filename");
         }
-
         return inputStream;
     }
 
@@ -83,7 +78,6 @@ public class VoskAdapter {
     }
 
     private Model createModel() {
-
         Path modelPath = Paths.get(MODEL_DIRECTORY);
         if (Files.exists(modelPath)) {
             return new Model(MODEL_DIRECTORY);
@@ -95,31 +89,27 @@ public class VoskAdapter {
     }
 
     private void createOutputFiles() {
-        createTranscriptFile();
-        createTimestampFile();
+        createFile(cacheKey.getTimestampFilename());
+        createFile(cacheKey.getTranscriptFilename());
     }
 
-    private void printMainRecognizerResults(Recognizer recognizer, InputStream audioInputStream) {
+    private void writeMainRecognizerResults(Recognizer recognizer, InputStream audioInputStream) {
         int numberBytes;
-        byte[] inputBuffer = new byte[AUDIO_BYTE_ARRAY_SIZE];
+        byte[] audioBuffer = new byte[AUDIO_BYTE_ARRAY_SIZE];
 
-        numberBytes = readBytesFromInputStream(audioInputStream, inputBuffer);
+        numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
 
         while (numberBytes >= 0) {
-            if (recognizer.acceptWaveForm(inputBuffer, numberBytes)) {
-                String jsonResult = recognizer.getResult();
-                printWordsTimestampsToTempFiles(jsonResult);
+            if (recognizer.acceptWaveForm(audioBuffer, numberBytes)) {
+                String transcriptJson = recognizer.getResult();
+                printWordsTimestampsToTempFiles(transcriptJson);
             }
 
-            numberBytes = readBytesFromInputStream(audioInputStream, inputBuffer);
+            numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
         }
     }
 
-    private int readBytesFromInputStream(InputStream audioInputStream, byte[] inputBuffer) {
-        return readStreamIntoInputBuffer(inputBuffer, audioInputStream);
-    }
-
-    private int readStreamIntoInputBuffer(byte[] inputBuffer, InputStream audioInputStream) {
+    private int writeAudioToBuffer(byte[] inputBuffer, InputStream audioInputStream) {
         Integer result = null;
 
         try {
@@ -131,12 +121,24 @@ public class VoskAdapter {
         return result;
     }
 
+    // TODO: change this name
     private void printWordsTimestampsToTempFiles(String jsonInput) {
         JsonObject jsonParseObject = getJsonObject(jsonInput);
 
         if (jsonParseObject.has("result")) {
             JsonArray allTimestampedWords = getAllWords(jsonParseObject);
-            printWordsTimestampsToFiles(allTimestampedWords);
+            for (JsonElement wordInfo : allTimestampedWords) {
+                if (wordInfo.isJsonObject()) {
+                    String startTime = getStringAttribute("start", wordInfo);
+                    String word = getStringAttribute("word", wordInfo);
+                    putWordInTempFile(word);
+                    putTimestampInTempFile(startTime);
+                }
+            }
+        } else {
+            // TODO: make own exception for this, log the exception, and print
+            // different output to the user that is less verbose
+            // (maybe make this function do error handling around another function).
         }
     }
 
@@ -148,25 +150,11 @@ public class VoskAdapter {
         return jsonObject.get("result").getAsJsonArray();
     }
 
-    private void printWordsTimestampsToFiles(JsonArray allTimestampedWords) {
-        for (JsonElement wordInfo : allTimestampedWords) {
-            if (wordInfo.isJsonObject()) {
-                String startTime = getStartTime(wordInfo);
-                String word = getWord(wordInfo);
-                putWordInTempFile(word);
-                putTimestampInTempFile(startTime);
-            }
-        }
+    private String getStringAttribute(String string, JsonElement wordInfo) {
+        return wordInfo.getAsJsonObject().get(string).getAsString();
     }
 
-    private String getStartTime(JsonElement wordInfo) {
-        return wordInfo.getAsJsonObject().get("start").getAsString();
-    }
-
-    private String getWord(JsonElement wordInfo) {
-        return wordInfo.getAsJsonObject().get("word").getAsString();
-    }
-
+    // TODO: change to pass filename as a parameter, also change to pass cacheKey as a parameter
     private void putWordInTempFile(String word) {
         try {
             String transcriptFilename = cacheKey.getTranscriptFilename();
@@ -188,32 +176,23 @@ public class VoskAdapter {
         }
     }
 
-    private void createTimestampFile() {
+    private void createFile(String filename) {
         try {
-            File timestamps = new File(cacheKey.getTimestampFilename());
-            timestamps.delete();
-            timestamps.createNewFile();
-        } catch (IOException e) {
-            System.out.println("Error creating timestamp file: " + cacheKey.getTimestampFilename());
-            e.printStackTrace();
-        }
-    }
-
-    private void createTranscriptFile() {
-        try {
-            File transcript = new File(cacheKey.getTranscriptFilename());
+            File transcript = new File(filename);
             transcript.delete();
             transcript.createNewFile();
         } catch (IOException e) {
             System.out.println("Error creating transcript file.");
+            e.printStackTrace();
         }
     }
 
-    private void printFinalRecognizerResult(Recognizer recognizer) {
+    private void writeFinalRecognizerResult(Recognizer recognizer) {
         String finalJsonResult = recognizer.getFinalResult();
         printWordsTimestampsToTempFiles(finalJsonResult);
     }
 
+    // TODO: logan thought this sucked
     private String appendNewlineTo(String string) {
         return string + '\n';
     }

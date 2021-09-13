@@ -15,14 +15,10 @@ public class TranscriptionCache {
 
     public Searchable getSearchable() {
         CacheKey cacheKey = new CacheKey(filename, speechToText);
-        if (cacheKey.cachedFilesExist()) {
-            return getSearchableFromCacheKey(cacheKey);
-        } else {
-            return voskProxy.searchUsingVosk(cacheKey);
-        }
-    }
 
-    private Searchable getSearchableFromCacheKey(CacheKey cacheKey) {
+        if (!cacheKey.cachedFilesExist()) {
+            return voskProxy.transcribeWithVosk(cacheKey);
+        }
         return new Searchable(cacheKey);
     }
 }

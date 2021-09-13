@@ -6,8 +6,9 @@ public class VoskProxy {
 
     public VoskProxy() {}
 
-    public Searchable searchUsingVosk(CacheKey cacheKey) {
+    public Searchable transcribeWithVosk(CacheKey cacheKey) {
         VoskAdapter voskAdapter = new VoskAdapter();
-        return voskAdapter.getSearchableResult(cacheKey);
+        voskAdapter.transcribeAudio(cacheKey);
+        return new Searchable(cacheKey);
     }
 }

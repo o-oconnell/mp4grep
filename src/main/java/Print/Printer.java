@@ -40,18 +40,24 @@ public class Printer {
     private void printAll(List<IntegerPair> printIndices, Printable printable) {
         for (IntegerPair printPair : printIndices) {
             int timestampKey = getTimestampKey(printable, printPair.start);
-            IntegerPair timestampPair = printable.transcriptTimestampIndices.get(timestampKey);
-            printResult(printable, timestampPair, printPair);
+            String timestamp = printable.transcriptTimestamps.get(timestampKey);
+            printResult(printable, timestamp, printPair);
         }
     }
 
     private int getTimestampKey(Printable printable, int index) {
-        return printable.transcriptTimestampIndices.floorKey(index);
+        return printable.transcriptTimestamps.floorKey(index);
     }
 
-    private void printResult(Printable printable, IntegerPair timestampPair, IntegerPair printPair) {
-        System.out.print(stripSpaces(printable.timestamps.substring(timestampPair.start, timestampPair.end + 1)) + " ");
-        System.out.println(stripSpaces(printable.transcript.substring(printPair.start, printPair.end + 1)));
+    private void printResult(Printable printable, String timestamp, IntegerPair printPair) {
+        System.out.print(timestamp);
+        System.out.print(":");
+        printMatch(printPair, printable.transcript);
+    }
+
+    private void printMatch(IntegerPair printPair, String transcript) {
+        String substr = transcript.substring(printPair.start, printPair.end);
+        System.out.println(substr);
     }
 
     private void printFilename(Printable printable) {
@@ -75,7 +81,12 @@ public class Printer {
     }
 
     private int getPreviousDelimiterIndex(int currentIndex, String transcript) {
-        return transcript.lastIndexOf(WORD_DELIMITER, currentIndex - 1);
+        int prevIndex = transcript.lastIndexOf(WORD_DELIMITER, currentIndex - 1);
+        if (prevIndex < 0) {
+            return 0;
+        } else {
+            return prevIndex;
+        }
     }
 
     private int getPrintEnd(int matchEnd, String transcript) {
