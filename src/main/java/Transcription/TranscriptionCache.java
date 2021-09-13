@@ -2,6 +2,8 @@ package Transcription;
 
 import Search.Searchable;
 
+import java.io.File;
+
 public class TranscriptionCache {
     private VoskAdapter speechToText;
     private String filename;
@@ -16,10 +18,16 @@ public class TranscriptionCache {
     public Searchable getSearchable() {
         CacheKey cacheKey = new CacheKey(filename, speechToText);
 
-        if (!cacheKey.cachedFilesExist()) {
-            return voskProxy.transcribeWithVosk(cacheKey);
+        if (cachedFilesExist(cacheKey)) {
+            return new Searchable(cacheKey);
         }
-        return new Searchable(cacheKey);
+        return voskProxy.transcribeWithVosk(cacheKey);
+    }
+
+    private boolean cachedFilesExist(CacheKey cacheKey) {
+        File transcript = cacheKey.getTranscriptFile();
+        File timestamps = cacheKey.getTimestampFile();
+        return transcript.exists() && timestamps.exists();
     }
 }
 

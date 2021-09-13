@@ -8,9 +8,9 @@ import java.util.List;
 
 public class SearchAdapter {
 
-    private SearchArguments args;
-    public SearchAdapter(SearchArguments args) {
-        this.args = args;
+    private SearchArguments searchArguments;
+    public SearchAdapter(SearchArguments searchArguments) {
+        this.searchArguments = searchArguments;
     }
 
     // TODO: multithread this
@@ -19,7 +19,7 @@ public class SearchAdapter {
         Searcher searcher = new Searcher();
 
         for (Searchable searchable : searchables) {
-            Printable print = searcher.getPrintableSearchResult(searchable, args.search);
+            Printable print = searcher.getPrintableSearchResult(searchable, searchArguments.search);
             result.add(print);
         }
         return result;

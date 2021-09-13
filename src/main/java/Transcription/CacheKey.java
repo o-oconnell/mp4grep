@@ -48,10 +48,4 @@ public class CacheKey {
         return new File(getTimestampFilename());
     }
 
-    public boolean cachedFilesExist() {
-        File transcript = getTranscriptFile();
-        File timestamps = getTimestampFile();
-
-        return transcript.exists() && timestamps.exists();
-    }
 }

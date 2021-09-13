@@ -60,24 +60,29 @@ public class ArgumentParser {
     }
 
     public Grepper createGrepper() {
-        TranscriptArguments transcriptArguments = getTranscriptArguments();
-        SearchArguments searchArguments = getSearchArguments();
-        PrintArguments printArguments = getPrintArguments();
-
-        TranscriptionAdapter transcriptionAdapter = new TranscriptionAdapter(transcriptArguments);
-        SearchAdapter searchAdapter = new SearchAdapter(searchArguments);
-        PrintAdapter printAdapter = new PrintAdapter(printArguments);
-
         return Grepper
                 .builder()
-                .transcriptionAdapter(transcriptionAdapter)
-                .searchAdapter(searchAdapter)
-                .printAdapter(printAdapter)
+                .transcriptionAdapter(getTranscriptionAdapter())
+                .searchAdapter(getSearchAdapter())
+                .printAdapter(getPrintAdapter())
                 .build();
     }
 
+    private TranscriptionAdapter getTranscriptionAdapter() {
+        return new TranscriptionAdapter(getTranscriptArguments());
+    }
+
+    private SearchAdapter getSearchAdapter() {
+        return new SearchAdapter(getSearchArguments());
+    }
+
+    private PrintAdapter getPrintAdapter() {
+        System.out.println("Words before match: " + getPrintArguments().wordsBeforeMatch);
+        return new PrintAdapter(getPrintArguments());
+    }
+
     private TranscriptArguments getTranscriptArguments() {
-        VoskAdapter speechToText = new VoskAdapter();
+        VoskAdapter speechToText = getSpeechToText();
         List<String> files = FileParser.getFileList(argObject.filesAndDirectories);
 
         return TranscriptArguments
@@ -86,6 +91,10 @@ public class ArgumentParser {
                 .speechToText(speechToText)
                 .search(argObject.search)
                 .build();
+    }
+
+    private VoskAdapter getSpeechToText() {
+        return new VoskAdapter();
     }
 
     private SearchArguments getSearchArguments() {

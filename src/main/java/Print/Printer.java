@@ -1,21 +1,18 @@
 package Print;
 
 import Arguments.PrintArguments;
+import lombok.Builder;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Builder
 public class Printer {
-    private static final int PERIOD_MATCHES_NEWLINES_AND_SPACES = Pattern.DOTALL;
-    private static final String WORD_DELIMITER = " ";
+    private static final char DELIMITER = ' ';
+    private PrintArguments printArguments;
 
-    private PrintArguments args;
-
-    public Printer(PrintArguments args) {
-        this.args = args;
+    public Printer(PrintArguments printArguments) {
+        this.printArguments = printArguments;
     }
 
     public void print(Printable printable) {
@@ -56,7 +53,7 @@ public class Printer {
     }
 
     private void printMatch(IntegerPair printPair, String transcript) {
-        String substr = transcript.substring(printPair.start, printPair.end);
+        String substr = transcript.substring(printPair.start, printPair.end + 1);
         System.out.println(substr);
     }
 
@@ -68,7 +65,7 @@ public class Printer {
 
     private int getPrintStart(int matchStart, String transcript) {
         int printStart = getPreviousDelimiterIndex(matchStart, transcript);
-        for (int i = 0; i < args.wordsBeforeMatch; ++i) {
+        for (int i = 0; i < printArguments.wordsBeforeMatch; ++i) {
             int prevIndex = getPreviousDelimiterIndex(printStart, transcript);
             if (prevIndex < matchStart && prevIndex >= 0) {
                 printStart = prevIndex;
@@ -77,11 +74,19 @@ public class Printer {
                 printStart = 0;
             }
         }
-        return printStart;
+        return stripLeadingDelimiters(printStart, transcript);
+    }
+
+    private int stripLeadingDelimiters(int start, String transcript) {
+        int newIndex = start;
+        while (transcript.charAt(newIndex) == DELIMITER && newIndex < transcript.length() - 1) {
+            newIndex++;
+        }
+        return newIndex;
     }
 
     private int getPreviousDelimiterIndex(int currentIndex, String transcript) {
-        int prevIndex = transcript.lastIndexOf(WORD_DELIMITER, currentIndex - 1);
+        int prevIndex = transcript.lastIndexOf(DELIMITER, currentIndex - 1);
         if (prevIndex < 0) {
             return 0;
         } else {
@@ -91,17 +96,25 @@ public class Printer {
 
     private int getPrintEnd(int matchEnd, String transcript) {
         int printEnd = matchEnd;
-        for (int i = 0; i < args.wordsAfterMatch; ++i) {
+        for (int i = 0; i < printArguments.wordsAfterMatch; ++i) {
             int nextIndex = getNextDelimiterIndex(printEnd, transcript);
             if (nextIndex > printEnd && nextIndex < transcript.length()) {
                 printEnd = nextIndex;
             }
         }
-        return printEnd;
+        return stripTrailingDelimiters(printEnd, transcript);
+    }
+
+    private int stripTrailingDelimiters(int end, String transcript) {
+        int newIndex = end;
+        while (transcript.charAt(newIndex) == DELIMITER && newIndex > 0) {
+            newIndex--;
+        }
+        return newIndex;
     }
 
     private int getNextDelimiterIndex(int currentIndex, String transcript) {
-        return transcript.indexOf(WORD_DELIMITER, currentIndex + 1);
+        return transcript.indexOf(DELIMITER, currentIndex + 1);
     }
 
     private String stripSpaces(String input) {

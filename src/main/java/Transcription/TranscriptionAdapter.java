@@ -17,15 +17,15 @@ public class TranscriptionAdapter {
     }
 
     public List<Searchable> getSearchables() {
-        if (!files.isEmpty()) {
-            List<Searchable> result = files.stream()
+        if (files.isEmpty()) {
+            return new LinkedList<Searchable>();
+        }
+
+        List<Searchable> result = files.stream()
                     .map(this::callCacheForInput)
                     .collect(Collectors.toList());
 
-            return result;
-        } else {
-            return new LinkedList<Searchable>();
-        }
+        return result;
     }
 
     private Searchable callCacheForInput(String filename) {
