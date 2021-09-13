@@ -21,13 +21,22 @@ public class TranscriptionCache {
         if (cachedFilesExist(cacheKey)) {
             return new Searchable(cacheKey);
         }
-        return voskProxy.transcribeWithVosk(cacheKey);
+        return voskProxy.transcribeWithVosk(getVoskAdapterArguments(cacheKey));
     }
 
     private boolean cachedFilesExist(CacheKey cacheKey) {
         File transcript = cacheKey.getTranscriptFile();
         File timestamps = cacheKey.getTimestampFile();
         return transcript.exists() && timestamps.exists();
+    }
+
+    private CacheInfo getVoskAdapterArguments(CacheKey cacheKey) {
+        return CacheInfo
+                .builder()
+                .inputFilename(cacheKey.filename)
+                .timestampFilename(cacheKey.getTimestampFilename())
+                .transcriptFilename(cacheKey.getTranscriptFilename())
+                .build();
     }
 }
 

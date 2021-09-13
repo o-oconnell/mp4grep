@@ -1,6 +1,5 @@
 package Transcription;
 
-import Search.Searchable;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -22,7 +21,7 @@ public class VoskAdapter {
     private static final int SAMPLING_RATE = 16000;
     private static final String MODEL_DIRECTORY = "model/vosk-model-LARGE-en-uszz";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
-    private CacheKey cacheKey;
+    private CacheInfo cacheInfo;
 
     public VoskAdapter() {
         voskSetup();
@@ -32,17 +31,17 @@ public class VoskAdapter {
         LibVosk.setLogLevel(LogLevel.WARNINGS);
     }
 
-    public void transcribeAudio(CacheKey cacheKey) {
-        this.cacheKey = cacheKey;
-        String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheKey.filename);
-        writeTranscriptAndTimestamps(convertedAudioFile);
+    public void transcribeAudio(CacheInfo cacheInfo) {
+        this.cacheInfo = cacheInfo;
+        String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheInfo.inputFilename);
+        writeTranscriptAndTimestamps(convertedAudioFile, cacheInfo);
     }
 
-    private void writeTranscriptAndTimestamps(String audioFileName) {
+    private void writeTranscriptAndTimestamps(String audioFileName, CacheInfo cacheInfo) {
         InputStream audioInputStream = createInputStream(audioFileName);
         Recognizer recognizer = createRecognizer();
 
-        createOutputFiles();
+        createOutputFiles(cacheInfo);
         writeMainRecognizerResults(recognizer, audioInputStream);
         writeFinalRecognizerResult(recognizer);
     }
@@ -88,9 +87,9 @@ public class VoskAdapter {
         }
     }
 
-    private void createOutputFiles() {
-        createFile(cacheKey.getTimestampFilename());
-        createFile(cacheKey.getTranscriptFilename());
+    private void createOutputFiles(CacheInfo cacheInfo) {
+        createFile(cacheInfo.timestampFilename);
+        createFile(cacheInfo.transcriptFilename);
     }
 
     private void writeMainRecognizerResults(Recognizer recognizer, InputStream audioInputStream) {
@@ -128,12 +127,10 @@ public class VoskAdapter {
         if (jsonParseObject.has("result")) {
             JsonArray allTimestampedWords = getAllWords(jsonParseObject);
             for (JsonElement wordInfo : allTimestampedWords) {
-                if (wordInfo.isJsonObject()) {
                     String startTime = getStringAttribute("start", wordInfo);
                     String word = getStringAttribute("word", wordInfo);
                     putWordInTempFile(word);
                     putTimestampInTempFile(startTime);
-                }
             }
         } else {
             // TODO: make own exception for this, log the exception, and print
@@ -157,7 +154,7 @@ public class VoskAdapter {
     // TODO: change to pass filename as a parameter, also change to pass cacheKey as a parameter
     private void putWordInTempFile(String word) {
         try {
-            String transcriptFilename = cacheKey.getTranscriptFilename();
+            String transcriptFilename = voskAdapterArguments.transcriptFilename;
             Path outputFile = Path.of(transcriptFilename);
             Files.writeString(outputFile, appendNewlineTo(word), StandardOpenOption.APPEND);
         } catch (IOException e) {
@@ -168,7 +165,7 @@ public class VoskAdapter {
 
     private void putTimestampInTempFile(String timestamp) {
         try {
-            String timestampFilename = cacheKey.getTimestampFilename();
+            String timestampFilename = voskAdapterArguments.timestampFilename;
             Path outputFile = Path.of(timestampFilename);
             Files.writeString(outputFile, appendNewlineTo(timestamp), StandardOpenOption.APPEND);
         } catch (IOException e) {
