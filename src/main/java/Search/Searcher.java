@@ -14,44 +14,34 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 
 public class Searcher {
-    private static final String DEFAULT_CHARSET = null; // Indicates platform default for FileUtils
+    private static final String FILE_UTILS_PLATFORM_DEFAULT_CHARSET = null;
     private static final char DELIMITER = ' ';
 
     public Printable getPrintableSearchResult(Searchable searchable, String search) {
-        String transcript = getTranscript(searchable);
-        String timestamps = getTimestamps(searchable.timestampFile);
+        String transcript = getContentsWithoutNewlines(searchable.transcriptFile);
+        String timestamps = getContentsWithoutNewlines(searchable.timestampFile);
 
         return Printable
                 .builder()
                 .transcript(transcript)
                 .filename(searchable.filename)
-                .matchIndices(getMatches(transcript, search))
+                .matchIndices(findMatches(transcript, search))
                 .transcriptTimestamps(mapTranscriptToTimestamps(transcript, timestamps))
                 .build();
     }
 
-    private String getTranscript(Searchable searchable) {
-        String transcript = getFileToString(searchable.transcriptFile);
-        return stripNewlines(transcript);
-    }
-
-    private String getFileToString(File file) {
+    private String getContentsWithoutNewlines(File file) {
         String result = null;
         try {
-            result = FileUtils.readFileToString(file, DEFAULT_CHARSET);
+            result = FileUtils.readFileToString(file, FILE_UTILS_PLATFORM_DEFAULT_CHARSET);
         } catch (IOException e) {
             System.out.println("Error reading transcription file to string.");
             e.printStackTrace();
         }
-        return result;
+        return stripNewlines(result);
     }
 
-    private String getTimestamps(File timestampFile) {
-        String timestamps = getFileToString(timestampFile);
-        return stripNewlines(timestamps);
-    }
-
-    private List<IntegerPair> getMatches(String transcript, String search) {
+    private List<IntegerPair> findMatches(String transcript, String search) {
         List<IntegerPair> result = new LinkedList<IntegerPair>();
         Pattern pattern = Pattern.compile(search);
         Matcher matcher = pattern.matcher(transcript);

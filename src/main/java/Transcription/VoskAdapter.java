@@ -21,7 +21,6 @@ public class VoskAdapter {
     private static final int SAMPLING_RATE = 16000;
     private static final String MODEL_DIRECTORY = "model/vosk-model-LARGE-en-uszz";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
-    private CacheInfo cacheInfo;
 
     public VoskAdapter() {
         voskSetup();
@@ -32,18 +31,44 @@ public class VoskAdapter {
     }
 
     public void transcribeAudio(CacheInfo cacheInfo) {
-        this.cacheInfo = cacheInfo;
-        String convertedAudioFile = VoskConverter.convertToVoskFormat(cacheInfo.inputFilename);
-        writeTranscriptAndTimestamps(convertedAudioFile, cacheInfo);
+        Recognizer recognizer = createRecognizer();
+        createOutputFiles(cacheInfo);
+        writeMainRecognizerResults(recognizer, cacheInfo);
+        writeFinalRecognizerResult(recognizer, cacheInfo);
     }
 
-    private void writeTranscriptAndTimestamps(String audioFileName, CacheInfo cacheInfo) {
-        InputStream audioInputStream = createInputStream(audioFileName);
-        Recognizer recognizer = createRecognizer();
+    private Recognizer createRecognizer() {
+        return new Recognizer(
+                createModel(),
+                SAMPLING_RATE
+        );
+    }
 
-        createOutputFiles(cacheInfo);
-        writeMainRecognizerResults(recognizer, audioInputStream);
-        writeFinalRecognizerResult(recognizer);
+    private Model createModel() {
+        Path modelPath = Paths.get(MODEL_DIRECTORY);
+        if (Files.exists(modelPath)) {
+            return new Model(MODEL_DIRECTORY);
+        } else {
+            System.out.println("Model directory " + MODEL_DIRECTORY + " not found. Exiting.");
+            System.exit(1);
+            return new Model(MODEL_DIRECTORY);
+        }
+    }
+
+    private void createOutputFiles(CacheInfo cacheInfo) {
+        createBlankFile(cacheInfo.timestampFilename);
+        createBlankFile(cacheInfo.transcriptFilename);
+    }
+
+    private void createBlankFile(String filename) {
+        try {
+            File transcript = new File(filename);
+            transcript.delete();
+            transcript.createNewFile();
+        } catch (IOException e) {
+            System.out.println("Error creating transcript file.");
+            e.printStackTrace();
+        }
     }
 
     private InputStream createInputStream(String audioFileName) {
@@ -69,39 +94,16 @@ public class VoskAdapter {
         return inputStream;
     }
 
-    private Recognizer createRecognizer() {
-        return new Recognizer(
-                createModel(),
-                SAMPLING_RATE
-        );
-    }
-
-    private Model createModel() {
-        Path modelPath = Paths.get(MODEL_DIRECTORY);
-        if (Files.exists(modelPath)) {
-            return new Model(MODEL_DIRECTORY);
-        } else {
-            System.out.println("Model directory " + MODEL_DIRECTORY + " not found. Exiting.");
-            System.exit(1);
-            return new Model(MODEL_DIRECTORY);
-        }
-    }
-
-    private void createOutputFiles(CacheInfo cacheInfo) {
-        createFile(cacheInfo.timestampFilename);
-        createFile(cacheInfo.transcriptFilename);
-    }
-
-    private void writeMainRecognizerResults(Recognizer recognizer, InputStream audioInputStream) {
-        int numberBytes;
+    private void writeMainRecognizerResults(Recognizer recognizer, CacheInfo cacheInfo) {
+        String audioFileName = VoskConverter.convertToVoskFormat(cacheInfo.inputFilename);
+        InputStream audioInputStream = createInputStream(audioFileName);
         byte[] audioBuffer = new byte[AUDIO_BYTE_ARRAY_SIZE];
-
-        numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
+        int numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
 
         while (numberBytes >= 0) {
             if (recognizer.acceptWaveForm(audioBuffer, numberBytes)) {
                 String transcriptJson = recognizer.getResult();
-                printWordsTimestampsToTempFiles(transcriptJson);
+                writeToCacheFiles(transcriptJson,cacheInfo);
             }
 
             numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
@@ -120,22 +122,23 @@ public class VoskAdapter {
         return result;
     }
 
-    // TODO: change this name
-    private void printWordsTimestampsToTempFiles(String jsonInput) {
+    private void writeToCacheFiles(String jsonInput, CacheInfo cacheInfo) {
         JsonObject jsonParseObject = getJsonObject(jsonInput);
 
         if (jsonParseObject.has("result")) {
             JsonArray allTimestampedWords = getAllWords(jsonParseObject);
             for (JsonElement wordInfo : allTimestampedWords) {
-                    String startTime = getStringAttribute("start", wordInfo);
-                    String word = getStringAttribute("word", wordInfo);
-                    putWordInTempFile(word);
-                    putTimestampInTempFile(startTime);
+                String startTime = getStringAttribute("start", wordInfo);
+                String word = getStringAttribute("word", wordInfo);
+                writeToFile(word, cacheInfo.transcriptFilename);
+                writeToFile(startTime, cacheInfo.timestampFilename);
             }
         } else {
             // TODO: make own exception for this, log the exception, and print
             // different output to the user that is less verbose
             // (maybe make this function do error handling around another function).
+            System.out.println("WARN: Vosk transcription failed and no result was received. This could be a result of incorrect input file format.");
+            System.exit(1);
         }
     }
 
@@ -151,46 +154,18 @@ public class VoskAdapter {
         return wordInfo.getAsJsonObject().get(string).getAsString();
     }
 
-    // TODO: change to pass filename as a parameter, also change to pass cacheKey as a parameter
-    private void putWordInTempFile(String word) {
+    private void writeToFile(String word, String filename) {
         try {
-            String transcriptFilename = voskAdapterArguments.transcriptFilename;
-            Path outputFile = Path.of(transcriptFilename);
-            Files.writeString(outputFile, appendNewlineTo(word), StandardOpenOption.APPEND);
+            Path outputFile = Path.of(filename);
+            Files.writeString(outputFile, word + '\n', StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.out.println("Error printing sound translation to temporary file");
             e.printStackTrace();
         }
     }
 
-    private void putTimestampInTempFile(String timestamp) {
-        try {
-            String timestampFilename = voskAdapterArguments.timestampFilename;
-            Path outputFile = Path.of(timestampFilename);
-            Files.writeString(outputFile, appendNewlineTo(timestamp), StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            System.out.println("Error printing sound translation to temporary file");
-        }
-    }
-
-    private void createFile(String filename) {
-        try {
-            File transcript = new File(filename);
-            transcript.delete();
-            transcript.createNewFile();
-        } catch (IOException e) {
-            System.out.println("Error creating transcript file.");
-            e.printStackTrace();
-        }
-    }
-
-    private void writeFinalRecognizerResult(Recognizer recognizer) {
+    private void writeFinalRecognizerResult(Recognizer recognizer, CacheInfo cacheInfo) {
         String finalJsonResult = recognizer.getFinalResult();
-        printWordsTimestampsToTempFiles(finalJsonResult);
-    }
-
-    // TODO: logan thought this sucked
-    private String appendNewlineTo(String string) {
-        return string + '\n';
+        writeToCacheFiles(finalJsonResult, cacheInfo);
     }
 }

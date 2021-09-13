@@ -6,18 +6,10 @@ public class VoskProxy {
 
     public VoskProxy() {}
 
-    public Searchable transcribeWithVosk(CacheKey cacheKey) {
+    public Searchable getSearchableTranscript(CacheInfo cacheInfo) {
         VoskAdapter voskAdapter = new VoskAdapter();
-        voskAdapter.transcribeAudio(getVoskAdapterArguments(v));
-        return new Searchable(cacheKey);
+        voskAdapter.transcribeAudio(cacheInfo);
+        return new Searchable(cacheInfo);
     }
 
-    private CacheInfo getVoskAdapterArguments(CacheKey cacheKey) {
-        return CacheInfo
-                .builder()
-                .inputFilename(cacheKey.filename)
-                .timestampFilename(cacheKey.getTimestampFilename())
-                .transcriptFilename(cacheKey.getTranscriptFilename())
-                .build();
-    }
 }

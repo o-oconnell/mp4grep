@@ -20,7 +20,6 @@ public class VoskConverter {
     private static final String CONVERTED_AUDIO_FILE_DIRECTORY = ".converted";
 
     public static String convertToVoskFormat(String sourceFile) {
-        createConversionDirectory();
         String targetFile = makeTargetFilename(sourceFile);
         convertAndWriteToTargetFile(sourceFile, targetFile);
         return targetFile;
@@ -50,6 +49,7 @@ public class VoskConverter {
     }
 
     private static void convertAndWriteToTargetFile(String sourceFilename, String targetFilename) {
+        createConversionDirectory();
         File source = new File(sourceFilename);
         File target = new File(targetFilename);
         EncodingAttributes attributes = getEncodingAttributesForWAVWithAudioAttributes();
@@ -79,7 +79,7 @@ public class VoskConverter {
         try {
             encoder.encode(instance, target, attributes);
         } catch (EncoderException e) {
-            System.out.println("Error converting files file to VOSK-compatible WAV format.");
+            System.out.println("Error converting input file " + source + " to VOSK-compatible WAV format.");
             e.printStackTrace();
         }
     }

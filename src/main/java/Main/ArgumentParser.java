@@ -77,7 +77,6 @@ public class ArgumentParser {
     }
 
     private PrintAdapter getPrintAdapter() {
-        System.out.println("Words before match: " + getPrintArguments().wordsBeforeMatch);
         return new PrintAdapter(getPrintArguments());
     }
 

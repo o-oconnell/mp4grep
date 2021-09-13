@@ -16,21 +16,21 @@ public class TranscriptionCache {
     }
 
     public Searchable getSearchable() {
-        CacheKey cacheKey = new CacheKey(filename, speechToText);
+        CacheInfo cacheInfo = getCacheInfo(new CacheKey(filename, speechToText));
 
-        if (cachedFilesExist(cacheKey)) {
-            return new Searchable(cacheKey);
+        if (!cachedFilesExist(cacheInfo)) {
+            voskProxy.getSearchableTranscript(cacheInfo);
         }
-        return voskProxy.transcribeWithVosk(getVoskAdapterArguments(cacheKey));
+        return new Searchable(cacheInfo);
     }
 
-    private boolean cachedFilesExist(CacheKey cacheKey) {
-        File transcript = cacheKey.getTranscriptFile();
-        File timestamps = cacheKey.getTimestampFile();
+    private boolean cachedFilesExist(CacheInfo cacheInfo) {
+        File transcript = new File(cacheInfo.transcriptFilename);
+        File timestamps = new File(cacheInfo.timestampFilename);
         return transcript.exists() && timestamps.exists();
     }
 
-    private CacheInfo getVoskAdapterArguments(CacheKey cacheKey) {
+    private CacheInfo getCacheInfo(CacheKey cacheKey) {
         return CacheInfo
                 .builder()
                 .inputFilename(cacheKey.filename)
