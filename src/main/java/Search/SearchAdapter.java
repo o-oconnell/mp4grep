@@ -5,6 +5,7 @@ import Print.Printable;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class SearchAdapter {
 
@@ -13,15 +14,14 @@ public class SearchAdapter {
         this.searchArguments = searchArguments;
     }
 
-    // TODO: multithread this
     public List<Printable> getPrintables(List<Searchable> searchables) {
-        List<Printable> result = new LinkedList<Printable>();
-        Searcher searcher = new Searcher();
+        return searchables.parallelStream()
+                .map(this::search)
+                .collect(Collectors.toList());
+    }
 
-        for (Searchable searchable : searchables) {
-            Printable print = searcher.getPrintableSearchResult(searchable, searchArguments.search);
-            result.add(print);
-        }
-        return result;
+    private Printable search(Searchable searchable) {
+        Searcher searcher = new Searcher();
+        return searcher.getPrintableSearchResult(searchable, searchArguments.search);
     }
 }

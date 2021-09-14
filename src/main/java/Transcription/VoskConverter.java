@@ -42,18 +42,19 @@ public class VoskConverter {
     }
 
     private static String makeTargetFilename(String file) {
-        int extensionStartIndex = file.lastIndexOf(".") + 1;
-        String nameWithoutExtension = file.substring(0, extensionStartIndex - 1);
-        String result = nameWithoutExtension + "." + VOSK_AUDIO_FILE_FORMAT;
+        String result = getFilenameWithoutExtension(file) + "." + VOSK_AUDIO_FILE_FORMAT;
         return CONVERTED_AUDIO_FILE_DIRECTORY + "/" + result;
+    }
+
+    private static String getFilenameWithoutExtension(String file) {
+        int extensionStartIndex = file.lastIndexOf(".") + 1;
+        return file.substring(0, extensionStartIndex - 1);
     }
 
     private static void convertAndWriteToTargetFile(String sourceFilename, String targetFilename) {
         createConversionDirectory();
-        File source = new File(sourceFilename);
-        File target = new File(targetFilename);
         EncodingAttributes attributes = getEncodingAttributesForWAVWithAudioAttributes();
-        encodeToTargetFile(source, target, attributes);
+        encodeAudio(sourceFilename, targetFilename, attributes);
     }
 
     private static EncodingAttributes getEncodingAttributesForWAVWithAudioAttributes() {
@@ -72,14 +73,16 @@ public class VoskConverter {
         return audio;
     }
 
-    private static void encodeToTargetFile(File source, File target, EncodingAttributes attributes) {
+    private static void encodeAudio(String sourceFilename, String targetFilename, EncodingAttributes attributes) {
+        File source = new File(sourceFilename);
+        File target = new File(targetFilename);
         MultimediaObject instance = new MultimediaObject(source);
         Encoder encoder = new Encoder();
 
         try {
             encoder.encode(instance, target, attributes);
         } catch (EncoderException e) {
-            System.out.println("Error converting input file " + source + " to VOSK-compatible WAV format.");
+            System.out.println("Error converting input file " + sourceFilename + " to VOSK-compatible WAV format.");
             e.printStackTrace();
         }
     }

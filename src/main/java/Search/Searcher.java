@@ -24,9 +24,9 @@ public class Searcher {
         return Printable
                 .builder()
                 .transcript(transcript)
+                .timestamps(timestamps)
                 .filename(searchable.filename)
                 .matchIndices(findMatches(transcript, search))
-                .transcriptTimestamps(mapTranscriptToTimestamps(transcript, timestamps))
                 .build();
     }
 
@@ -41,6 +41,10 @@ public class Searcher {
         return stripNewlines(result);
     }
 
+    private String stripNewlines(String input) {
+        return input.replace("\n", " ").replace("\r", "");
+    }
+
     private List<IntegerPair> findMatches(String transcript, String search) {
         List<IntegerPair> result = new LinkedList<IntegerPair>();
         Pattern pattern = Pattern.compile(search);
@@ -50,36 +54,5 @@ public class Searcher {
             result.add(new IntegerPair(matcher.start(), matcher.end()));
         }
         return result;
-    }
-
-    private TreeMap<Integer, String> mapTranscriptToTimestamps(String transcript, String timestampsText) {
-        TreeMap<Integer, String> transcriptTimestampIndices = new TreeMap<>();
-        List<Integer> transcriptDelimiterIndices = getDelimiterIndices(transcript);
-        List<String> timestamps = getTimestamps(timestampsText);
-
-        IntStream.range(0, timestamps.size() - 1)
-                .boxed()
-                .forEach(i -> transcriptTimestampIndices.put(
-                        transcriptDelimiterIndices.get(i),
-                        timestamps.get(i)
-                ));
-        return transcriptTimestampIndices;
-    }
-
-    private List<Integer> getDelimiterIndices(String string) {
-        List<Integer> indices = IntStream.range(0, string.length()-1)
-                .boxed()
-                .filter(i -> string.charAt(i) == ' ')
-                .collect(Collectors.toList());
-        indices.add(0, 0);
-        return indices;
-    }
-
-    private List<String> getTimestamps(String timestampsText) {
-        return Arrays.asList(timestampsText.split(" "));
-    }
-
-    private String stripNewlines(String input) {
-        return input.replace("\n", " ").replace("\r", "");
     }
 }
