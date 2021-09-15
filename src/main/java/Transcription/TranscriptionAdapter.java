@@ -21,7 +21,7 @@ public class TranscriptionAdapter {
             return new LinkedList<Searchable>();
         }
 
-        List<Searchable> result = files.stream()
+        List<Searchable> result = files.parallelStream()
                     .map(this::callCacheForInput)
                     .collect(Collectors.toList());
 

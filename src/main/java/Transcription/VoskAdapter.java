@@ -16,10 +16,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.TimeUnit;
 
 public class VoskAdapter {
     private static final int SAMPLING_RATE = 16000;
     private static final String MODEL_DIRECTORY = "model/vosk-model-LARGE-en-uszz";
+    private static final String SPLIT_STRING_ON_PERIOD_REGEX = "\\.";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
 
     public VoskAdapter() {
@@ -98,6 +100,7 @@ public class VoskAdapter {
         String audioFileName = VoskConverter.convertToVoskFormat(cacheInfo.inputFilename);
         InputStream audioInputStream = createInputStream(audioFileName);
         byte[] audioBuffer = new byte[AUDIO_BYTE_ARRAY_SIZE];
+
         int numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
 
         while (numberBytes >= 0) {
@@ -105,7 +108,6 @@ public class VoskAdapter {
                 String transcriptJson = recognizer.getResult();
                 writeToCacheFiles(transcriptJson,cacheInfo);
             }
-
             numberBytes = writeAudioToBuffer(audioBuffer, audioInputStream);
         }
     }
@@ -131,14 +133,10 @@ public class VoskAdapter {
                 String startTime = getStringAttribute("start", wordInfo);
                 String word = getStringAttribute("word", wordInfo);
                 writeToFile(word, cacheInfo.transcriptFilename);
-                writeToFile(startTime, cacheInfo.timestampFilename);
+                writeToFile(getTimestampFormat(startTime), cacheInfo.timestampFilename);
             }
         } else {
-            // TODO: make own exception for this, log the exception, and print
-            // different output to the user that is less verbose
-            // (maybe make this function do error handling around another function).
-            System.out.println("WARN: Vosk transcription failed and no result was received. This could be a result of incorrect input file format.");
-            System.exit(1);
+            // Do nothing. No audio was transcribed.
         }
     }
 
@@ -162,6 +160,44 @@ public class VoskAdapter {
             System.out.println("Error printing sound translation to temporary file");
             e.printStackTrace();
         }
+    }
+
+    private String getTimestampFormat(String seconds) {
+        // edge case since a long cannot consist only of zeros
+        if (containsOnlyZeros(removeFraction(seconds))) {
+            return "0" + ":" + "0" + ":" + "0";
+        } else {
+            Long secondsNum = Long.valueOf(removeFraction(seconds));
+            return getHours(secondsNum) + ":" + getMinutes(secondsNum) + ":" + getSeconds(secondsNum);
+        }
+    }
+
+    String removeFraction(String string) {
+        String[] split = string.split(SPLIT_STRING_ON_PERIOD_REGEX);
+
+        if (split.length > 0) {
+            return split[0];
+        } else {
+            return string;
+        }
+    }
+
+    private boolean containsOnlyZeros(String input) {
+        return input.chars()
+                .asLongStream()
+                .allMatch(ch -> ch == '.' || ch == '0' || ch == ' ');
+    }
+
+    private long getHours(long secondsNum) {
+        return TimeUnit.SECONDS.toHours(secondsNum);
+    }
+
+    private long getMinutes(long secondsNum) {
+        return TimeUnit.SECONDS.toMinutes(secondsNum) - (TimeUnit.SECONDS.toHours(secondsNum)* 60);
+    }
+
+    private long getSeconds(long secondsNum) {
+        return TimeUnit.SECONDS.toSeconds(secondsNum) - (TimeUnit.SECONDS.toMinutes(secondsNum) *60);
     }
 
     private void writeFinalRecognizerResult(Recognizer recognizer, CacheInfo cacheInfo) {
