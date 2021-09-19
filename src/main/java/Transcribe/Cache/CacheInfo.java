@@ -1,4 +1,4 @@
-package Transcription;
+package Transcribe.Cache;
 
 import lombok.Builder;
 

@@ -15,9 +15,7 @@ public class PrintAdapter {
 
     public void print(List<Printable> printables) {
         Printer printer = new Printer(printArguments);
-
-        for (Printable printable : printables) {
-            printer.print(printable);
-        }
+        printables.stream()
+                .forEach(printer::print);
     }
 }

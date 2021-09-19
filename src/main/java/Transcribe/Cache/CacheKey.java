@@ -1,4 +1,6 @@
-package Transcription;
+package Transcribe.Cache;
+
+import Transcribe.VoskAdapter;
 
 import java.io.File;
 

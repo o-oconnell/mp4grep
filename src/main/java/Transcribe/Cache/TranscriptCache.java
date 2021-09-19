@@ -1,15 +1,19 @@
-package Transcription;
+package Transcribe.Cache;
 
 import Search.Searchable;
+import Transcribe.Cache.CacheInfo;
+import Transcribe.Cache.CacheKey;
+import Transcribe.VoskAdapter;
+import Transcribe.VoskProxy;
 
 import java.io.File;
 
-public class TranscriptionCache {
+public class TranscriptCache {
     private VoskAdapter speechToText;
     private String filename;
     private VoskProxy voskProxy;
 
-    public TranscriptionCache(String filename, VoskAdapter speechToText) {
+    public TranscriptCache(String filename, VoskAdapter speechToText) {
         this.filename = filename;
         this.speechToText = speechToText;
         this.voskProxy = new VoskProxy();

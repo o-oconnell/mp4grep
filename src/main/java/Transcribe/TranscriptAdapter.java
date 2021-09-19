@@ -1,17 +1,18 @@
-package Transcription;
+package Transcribe;
 
 import Arguments.TranscriptArguments;
 import Search.Searchable;
+import Transcribe.Cache.TranscriptCache;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TranscriptionAdapter {
+public class TranscriptAdapter {
     private List<String> files;
     private VoskAdapter speechToText;
 
-    public TranscriptionAdapter(TranscriptArguments transcriptArguments) {
+    public TranscriptAdapter(TranscriptArguments transcriptArguments) {
         this.files = transcriptArguments.files;
         this.speechToText = transcriptArguments.speechToText;
     }
@@ -29,7 +30,7 @@ public class TranscriptionAdapter {
     }
 
     private Searchable callCacheForInput(String filename) {
-        TranscriptionCache cache = new TranscriptionCache(filename, speechToText);
+        TranscriptCache cache = new TranscriptCache(filename, speechToText);
         return cache.getSearchable();
     }
 }

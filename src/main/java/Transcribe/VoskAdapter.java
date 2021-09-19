@@ -1,5 +1,6 @@
-package Transcription;
+package Transcribe;
 
+import Transcribe.Cache.CacheInfo;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

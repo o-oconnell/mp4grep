@@ -1,7 +1,6 @@
 package Search;
 
-import Transcription.CacheInfo;
-import Transcription.CacheKey;
+import Transcribe.Cache.CacheInfo;
 
 import java.io.File;
 

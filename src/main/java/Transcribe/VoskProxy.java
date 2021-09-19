@@ -1,6 +1,7 @@
-package Transcription;
+package Transcribe;
 
 import Search.Searchable;
+import Transcribe.Cache.CacheInfo;
 
 public class VoskProxy {
 

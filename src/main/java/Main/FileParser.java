@@ -66,7 +66,6 @@ public class FileParser {
 
     private static String getFileExtension(String filename) {
         int lastPeriodIndex = filename.lastIndexOf(".");
-
         return filename
                 .substring(lastPeriodIndex + 1)
                 .toLowerCase(LOCAL_LOCALE);

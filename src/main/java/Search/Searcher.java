@@ -45,7 +45,7 @@ public class Searcher {
         return input.replace("\n", " ").replace("\r", "");
     }
 
-    private List<IntegerPair> findMatches(String transcript, String search) {
+    public static List<IntegerPair> findMatches(String transcript, String search) {
         List<IntegerPair> result = new LinkedList<IntegerPair>();
         Pattern pattern = Pattern.compile(search);
         Matcher matcher = pattern.matcher(transcript);

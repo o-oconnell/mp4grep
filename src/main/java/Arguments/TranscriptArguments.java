@@ -1,6 +1,6 @@
 package Arguments;
 
-import Transcription.VoskAdapter;
+import Transcribe.VoskAdapter;
 import lombok.Builder;
 
 import java.util.List;

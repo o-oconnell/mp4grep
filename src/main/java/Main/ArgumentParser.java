@@ -7,8 +7,8 @@ import Arguments.SearchArguments;
 import Arguments.TranscriptArguments;
 import Print.PrintAdapter;
 import Search.SearchAdapter;
-import Transcription.TranscriptionAdapter;
-import Transcription.VoskAdapter;
+import Transcribe.TranscriptAdapter;
+import Transcribe.VoskAdapter;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Option;
 import picocli.CommandLine;
@@ -68,8 +68,9 @@ public class ArgumentParser {
                 .build();
     }
 
-    private TranscriptionAdapter getTranscriptionAdapter() {
-        return new TranscriptionAdapter(getTranscriptArguments());
+    private TranscriptAdapter getTranscriptionAdapter() {
+
+        return new TranscriptAdapter(getTranscriptArguments());
     }
 
     private SearchAdapter getSearchAdapter() {

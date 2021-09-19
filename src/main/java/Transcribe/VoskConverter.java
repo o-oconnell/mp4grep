@@ -1,4 +1,4 @@
-package Transcription;
+package Transcribe;
 
 import ws.schild.jave.Encoder;
 import ws.schild.jave.EncoderException;

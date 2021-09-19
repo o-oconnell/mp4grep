@@ -1,20 +1,17 @@
 package Main;
 
-import Arguments.PrintArguments;
-import Arguments.SearchArguments;
-import Arguments.TranscriptArguments;
 import Print.PrintAdapter;
 import Print.Printable;
 import Search.SearchAdapter;
 import Search.Searchable;
-import Transcription.TranscriptionAdapter;
+import Transcribe.TranscriptAdapter;
 import lombok.Builder;
 
 import java.util.List;
 
 @Builder
 public class Grepper {
-    TranscriptionAdapter transcriptionAdapter;
+    TranscriptAdapter transcriptionAdapter;
     SearchAdapter searchAdapter;
     PrintAdapter printAdapter;
 
