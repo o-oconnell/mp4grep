@@ -11,15 +11,17 @@ import java.util.stream.Collectors;
 public class TranscriptAdapter {
     private List<String> files;
     private VoskAdapter speechToText;
+    private String modelDirectory;
 
     public TranscriptAdapter(TranscriptArguments transcriptArguments) {
         this.files = transcriptArguments.files;
         this.speechToText = transcriptArguments.speechToText;
+        this.modelDirectory = transcriptArguments.modelDirectory;
     }
 
     public List<Searchable> getSearchables() {
         if (files.isEmpty()) {
-            return new LinkedList<Searchable>();
+            return new LinkedList<>();
         }
 
         List<Searchable> result = files.parallelStream()
@@ -30,7 +32,7 @@ public class TranscriptAdapter {
     }
 
     private Searchable callCacheForInput(String filename) {
-        TranscriptCache cache = new TranscriptCache(filename, speechToText);
+        TranscriptCache cache = new TranscriptCache(filename, speechToText, modelDirectory);
         return cache.getSearchable();
     }
 }

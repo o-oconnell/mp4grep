@@ -11,38 +11,30 @@ import Transcribe.TranscriptAdapter;
 import Transcribe.VoskAdapter;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.ParseResult;
 import picocli.CommandLine;
 
 public class ArgumentParser {
     private final Args argObject;
 
     private class Args {
-        @Parameters(index = "0")
+        @Parameters(index = "0", arity = "1")
         String search;
 
-        @Parameters(index = "1..*")
+        @Parameters(index = "1..*", arity = "1..*")
         List<String> filesAndDirectories;
-
-        @Option(names = {"--regex", "-r"}, description = "Flag to toggle regex searching", defaultValue = "false")
-        public boolean regex;
-
-        @Option(names = {"--language", "-l"}, description = "Set the audio transcription language")
-        public String language;
-
-        @Option(names = {"--recursive", "-R"}, description = "Search recursively inside of a provided directory.")
-        public boolean recursive;
-
-        @Option(names = {"--timestamp", "-t"}, description = "The length of each timestamp in seconds")
-        public int timestampSeconds;
-
-        @Option(names = {"--count", "-c"}, description = "Output a count of matching words/phrases only")
-        public boolean count;
 
         @Option(names = {"--before", "-b"}, description = "Words to print before a match (default 5)")
         public int wordsToPrintBeforeMatch = 5;
 
         @Option(names = {"--after", "-a"}, description = "Words to print after a match (default 5)")
         public int wordsToPrintAfterMatch = 5;
+
+        @Option(names = {"--model"}, description = "Transcription neural network model directory (if you want to use your own model)")
+        public String model = "model";
+
+        @Option(names = { "-h", "--help" }, usageHelp = true, description = "display a help message")
+        private boolean helpRequested = false;
     }
 
     public ArgumentParser() {
@@ -50,13 +42,38 @@ public class ArgumentParser {
     }
 
     public Grepper getGrepperForArgs(String[] args) {
+
         parseArguments(args);
         return createGrepper();
     }
 
     private void parseArguments(String[] args) {
-        CommandLine arguments = new CommandLine(argObject);
-        arguments.parseArgs(args);
+
+        CommandLine commandLine = new CommandLine(argObject);
+        commandLine.parseArgs(args);
+        if (commandLine.isUsageHelpRequested()) {
+            commandLine.usage(System.out);
+            return;
+        } else {
+
+        }
+
+//        CommandLine arguments = new CommandLine(argObject);
+//        collectErrors(arguments);
+//        ParseResult result = arguments.parseArgs(args);
+//        handleErrors(result);
+    }
+
+    private void collectErrors(CommandLine arguments) {
+        arguments.getCommandSpec().parser().collectErrors(true);
+    }
+
+    private void handleErrors(ParseResult result) {
+        if (!result.errors().isEmpty()) {
+            System.out.println("Usage: mp4grep [options] [search string] [files/directories]");
+            System.out.println("Try \'mp4grep --help\' for more information");
+            System.exit(1);
+        }
     }
 
     public Grepper createGrepper() {
@@ -69,7 +86,6 @@ public class ArgumentParser {
     }
 
     private TranscriptAdapter getTranscriptionAdapter() {
-
         return new TranscriptAdapter(getTranscriptArguments());
     }
 
@@ -82,14 +98,12 @@ public class ArgumentParser {
     }
 
     private TranscriptArguments getTranscriptArguments() {
-        VoskAdapter speechToText = getSpeechToText();
-        List<String> files = FileParser.getFileList(argObject.filesAndDirectories);
-
         return TranscriptArguments
                 .builder()
-                .files(files)
-                .speechToText(speechToText)
+                .files(FileParser.getFileList(argObject.filesAndDirectories))
+                .speechToText(getSpeechToText())
                 .search(argObject.search)
+                .modelDirectory(argObject.model)
                 .build();
     }
 

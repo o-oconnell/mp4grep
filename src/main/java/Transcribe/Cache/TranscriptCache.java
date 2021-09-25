@@ -12,15 +12,17 @@ public class TranscriptCache {
     private VoskAdapter speechToText;
     private String filename;
     private VoskProxy voskProxy;
+    private String modelDirectory;
 
-    public TranscriptCache(String filename, VoskAdapter speechToText) {
+    public TranscriptCache(String filename, VoskAdapter speechToText, String modelDirectory) {
         this.filename = filename;
         this.speechToText = speechToText;
+        this.modelDirectory = modelDirectory;
         this.voskProxy = new VoskProxy();
     }
 
     public Searchable getSearchable() {
-        CacheInfo cacheInfo = getCacheInfo(new CacheKey(filename, speechToText));
+        CacheInfo cacheInfo = getCacheInfo(new CacheKey(filename, speechToText, modelDirectory));
 
         if (!cachedFilesExist(cacheInfo)) {
             voskProxy.getSearchableTranscript(cacheInfo);
@@ -40,6 +42,7 @@ public class TranscriptCache {
                 .inputFilename(cacheKey.filename)
                 .timestampFilename(cacheKey.getTimestampFilename())
                 .transcriptFilename(cacheKey.getTranscriptFilename())
+                .modelDirectory(cacheKey.getModelDirectory())
                 .build();
     }
 }

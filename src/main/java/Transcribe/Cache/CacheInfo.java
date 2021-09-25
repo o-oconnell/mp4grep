@@ -7,4 +7,5 @@ public class CacheInfo {
     public String inputFilename;
     public String transcriptFilename;
     public String timestampFilename;
+    public String modelDirectory;
 }

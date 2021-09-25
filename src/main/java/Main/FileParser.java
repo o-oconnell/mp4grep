@@ -20,13 +20,15 @@ public class FileParser {
     private static final Locale LOCAL_LOCALE = Locale.ROOT;
 
     public static List<String> getFileList(List<String> filesAndDirectories) {
-        List<String> files = new LinkedList<String>();
+        List<String> files = new LinkedList<>();
         for (String input : filesAndDirectories) {
             if (isDirectory(input)) {
                 List<String> filesFromDirectory = getAudioFilesFromDirectory(input);
                 files.addAll(filesFromDirectory);
             } else if (isValidAudioFile(input)) {
                 files.add(input);
+            } else {
+                System.out.println("Audio file \"" + input + "\" not found.");
             }
         }
         return files;

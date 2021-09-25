@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 
 public class VoskAdapter {
     private static final int SAMPLING_RATE = 16000;
-    private static final String MODEL_DIRECTORY = "model/vosk-model-LARGE-en-uszz";
     private static final String SPLIT_STRING_ON_PERIOD_REGEX = "\\.";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
 
@@ -34,27 +33,27 @@ public class VoskAdapter {
     }
 
     public void transcribeAudio(CacheInfo cacheInfo) {
-        Recognizer recognizer = createRecognizer();
+        Recognizer recognizer = createRecognizer(cacheInfo.modelDirectory);
         createOutputFiles(cacheInfo);
         writeMainRecognizerResults(recognizer, cacheInfo);
         writeFinalRecognizerResult(recognizer, cacheInfo);
     }
 
-    private Recognizer createRecognizer() {
+    private Recognizer createRecognizer(String modelDirectory) {
         return new Recognizer(
-                createModel(),
+                createModel(modelDirectory),
                 SAMPLING_RATE
         );
     }
 
-    private Model createModel() {
-        Path modelPath = Paths.get(MODEL_DIRECTORY);
+    private Model createModel(String modelDirectory) {
+        Path modelPath = Paths.get(modelDirectory);
         if (Files.exists(modelPath)) {
-            return new Model(MODEL_DIRECTORY);
+            return new Model(modelDirectory);
         } else {
-            System.out.println("Model directory " + MODEL_DIRECTORY + " not found. Exiting.");
+            System.out.println("Model directory \"" + modelDirectory + "\" not found. Exiting.");
             System.exit(1);
-            return new Model(MODEL_DIRECTORY);
+            return new Model(modelDirectory);
         }
     }
 
