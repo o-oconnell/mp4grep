@@ -1,7 +1,5 @@
 package Main;
 
-import java.util.List;
-
 import Arguments.PrintArguments;
 import Arguments.SearchArguments;
 import Arguments.TranscriptArguments;
@@ -9,59 +7,32 @@ import Print.PrintAdapter;
 import Search.SearchAdapter;
 import Transcribe.TranscriptAdapter;
 import Transcribe.VoskAdapter;
-import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.ParseResult;
 import picocli.CommandLine;
+import picocli.CommandLine.ParseResult;
 
 public class ArgumentParser {
-    private final Args argObject;
-
-    private class Args {
-        @Parameters(index = "0", arity = "1")
-        String search;
-
-        @Parameters(index = "1..*", arity = "1..*")
-        List<String> filesAndDirectories;
-
-        @Option(names = {"--before", "-b"}, description = "Words to print before a match (default 5)")
-        public int wordsToPrintBeforeMatch = 5;
-
-        @Option(names = {"--after", "-a"}, description = "Words to print after a match (default 5)")
-        public int wordsToPrintAfterMatch = 5;
-
-        @Option(names = {"--model"}, description = "Transcription neural network model directory (if you want to use your own model)")
-        public String model = "model";
-
-        @Option(names = { "-h", "--help" }, usageHelp = true, description = "display a help message")
-        private boolean helpRequested = false;
-    }
+    private final PicoCliArgs argObject;
 
     public ArgumentParser() {
-        argObject = new Args();
+        argObject = new PicoCliArgs();
     }
 
     public Grepper getGrepperForArgs(String[] args) {
-
         parseArguments(args);
         return createGrepper();
     }
 
     private void parseArguments(String[] args) {
+        CommandLine arguments = new CommandLine(argObject);
+        collectErrors(arguments);
 
-        CommandLine commandLine = new CommandLine(argObject);
-        commandLine.parseArgs(args);
-        if (commandLine.isUsageHelpRequested()) {
-            commandLine.usage(System.out);
+        ParseResult result = arguments.parseArgs(args);
+        handleErrors(result);
+
+        if (arguments.isUsageHelpRequested()) {
+            arguments.usage(System.out);
             return;
-        } else {
-
         }
-
-//        CommandLine arguments = new CommandLine(argObject);
-//        collectErrors(arguments);
-//        ParseResult result = arguments.parseArgs(args);
-//        handleErrors(result);
     }
 
     private void collectErrors(CommandLine arguments) {
@@ -100,10 +71,10 @@ public class ArgumentParser {
     private TranscriptArguments getTranscriptArguments() {
         return TranscriptArguments
                 .builder()
-                .files(FileParser.getFileList(argObject.filesAndDirectories))
+                .files(FileParser.getFileList(argObject.section2.filesAndDirectories))
                 .speechToText(getSpeechToText())
-                .search(argObject.search)
-                .modelDirectory(argObject.model)
+                .search(argObject.section2.search)
+                .modelDirectory(argObject.section1.model)
                 .build();
     }
 
@@ -114,16 +85,16 @@ public class ArgumentParser {
     private SearchArguments getSearchArguments() {
         return SearchArguments
                 .builder()
-                .search(argObject.search)
+                .search(argObject.section2.search)
                 .build();
     }
 
     private PrintArguments getPrintArguments() {
         return PrintArguments
                 .builder()
-                .wordsAfterMatch(argObject.wordsToPrintAfterMatch)
-                .wordsBeforeMatch(argObject.wordsToPrintBeforeMatch)
-                .search(argObject.search)
+                .wordsAfterMatch(argObject.section1.wordsToPrintAfterMatch)
+                .wordsBeforeMatch(argObject.section1.wordsToPrintBeforeMatch)
+                .search(argObject.section2.search)
                 .build();
     }
 }

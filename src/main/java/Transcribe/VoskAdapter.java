@@ -165,10 +165,10 @@ public class VoskAdapter {
     private String getTimestampFormat(String seconds) {
         // edge case since a long cannot consist only of zeros
         if (containsOnlyZeros(removeFraction(seconds))) {
-            return "0" + ":" + "0" + ":" + "0";
+            return "0" + ":" + "00";
         } else {
             Long secondsNum = Long.valueOf(removeFraction(seconds));
-            return getHours(secondsNum) + ":" + getMinutes(secondsNum) + ":" + getSeconds(secondsNum);
+            return getHours(secondsNum) + getMinutes(secondsNum) + getSeconds(secondsNum);
         }
     }
 
@@ -188,16 +188,26 @@ public class VoskAdapter {
                 .allMatch(ch -> ch == '.' || ch == '0' || ch == ' ');
     }
 
-    private long getHours(long secondsNum) {
-        return TimeUnit.SECONDS.toHours(secondsNum);
+    private String getHours(long secondsNum) {
+        long hours =  TimeUnit.SECONDS.toHours(secondsNum);
+        if (hours > 0) {
+            return String.valueOf(hours) + ":";
+        } else {
+            return "";
+        }
     }
 
-    private long getMinutes(long secondsNum) {
-        return TimeUnit.SECONDS.toMinutes(secondsNum) - (TimeUnit.SECONDS.toHours(secondsNum)* 60);
+    private String getMinutes(long secondsNum) {
+        return String.valueOf(TimeUnit.SECONDS.toMinutes(secondsNum) - (TimeUnit.SECONDS.toHours(secondsNum)* 60) + ":");
     }
 
-    private long getSeconds(long secondsNum) {
-        return TimeUnit.SECONDS.toSeconds(secondsNum) - (TimeUnit.SECONDS.toMinutes(secondsNum) *60);
+    private String getSeconds(long secondsNum) {
+        long seconds = TimeUnit.SECONDS.toSeconds(secondsNum) - (TimeUnit.SECONDS.toMinutes(secondsNum) *60);
+        if (seconds < 10) {
+            return "0" + seconds;
+        } else {
+            return String.valueOf(seconds);
+        }
     }
 
     private void writeFinalRecognizerResult(Recognizer recognizer, CacheInfo cacheInfo) {

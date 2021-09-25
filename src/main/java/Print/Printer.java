@@ -12,6 +12,8 @@ import java.util.stream.IntStream;
 public class Printer {
     private static final char DELIMITER = ' ';
     private static final String ANSI_RED_MATCH_HIGHLIGHT = "\u001B[31m";
+    private static final String ANSI_GREEN_FILENAME = "\u001b[32m";
+    private static final String ANSI_BLUE_TIMESTAMP = "\u001b[34m";
     private static final String ANSI_RESET = "\u001B[0m";
 
     private PrintArguments printArguments;
@@ -26,9 +28,8 @@ public class Printer {
     }
 
     private void printFilename(Printable printable) {
-        System.out.println("");
-        System.out.println("File: " + printable.filename);
-        System.out.println("--------");
+        System.out.println();
+        System.out.println(ANSI_GREEN_FILENAME + printable.filename + ANSI_RESET);
     }
 
     private void printMatches(Printable printable) {
@@ -50,8 +51,8 @@ public class Printer {
     }
 
     private void printMatch(IntegerPair matchPair, ProcessedTranscript processedTranscript, ProcessedTimestamps processedTimestamps) {
-        System.out.println(getTimestampPrint(matchPair, processedTimestamps)
-                + ":"
+        System.out.println(
+                ANSI_BLUE_TIMESTAMP + "[" + getTimestampPrint(matchPair, processedTimestamps) + "] " + ANSI_RESET
                 + getTranscriptPrint(matchPair, processedTranscript));
     }
 
