@@ -9,8 +9,6 @@ import java.util.stream.IntStream;
 // obtaining a timestamp corresponding to a transcript word with minimal computation) of the timestamps
 // which is the transcriptTimestampMap treemap that maps transcript indices to timestamp strings
 public class ProcessedTimestamps {
-    private static char DELIMITER = ' ';
-
     public TreeMap<Integer, String> transcriptTimestampMap;
 
     public ProcessedTimestamps(String timestampsText, List<Integer> delimiterIndices) {

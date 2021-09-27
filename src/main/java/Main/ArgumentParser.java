@@ -3,6 +3,8 @@ package Main;
 import Arguments.PrintArguments;
 import Arguments.SearchArguments;
 import Arguments.TranscriptArguments;
+import Main.PicoCliArguments.MP4GrepArgs;
+import Main.PicoCliArguments.UsageHelpArgs;
 import Print.PrintAdapter;
 import Search.SearchAdapter;
 import Transcribe.TranscriptAdapter;
@@ -11,10 +13,11 @@ import picocli.CommandLine;
 import picocli.CommandLine.ParseResult;
 
 public class ArgumentParser {
-    private final PicoCliArgs argObject;
+    private static final int ERROR_EXIT_CODE = 1;
+    private final MP4GrepArgs mp4GrepArgs;
 
     public ArgumentParser() {
-        argObject = new PicoCliArgs();
+        mp4GrepArgs = new MP4GrepArgs();
     }
 
     public Grepper getGrepperForArgs(String[] args) {
@@ -23,28 +26,33 @@ public class ArgumentParser {
     }
 
     private void parseArguments(String[] args) {
-        CommandLine arguments = new CommandLine(argObject);
-        collectErrors(arguments);
-
+        CommandLine arguments = makeCommandLine(mp4GrepArgs);
         ParseResult result = arguments.parseArgs(args);
         handleErrors(result);
 
         if (arguments.isUsageHelpRequested()) {
-            arguments.usage(System.out);
-            return;
+            printUsageHelp();
         }
     }
 
-    private void collectErrors(CommandLine arguments) {
+    private CommandLine makeCommandLine(MP4GrepArgs args) {
+        CommandLine arguments = new CommandLine(args);
         arguments.getCommandSpec().parser().collectErrors(true);
+        return arguments;
     }
 
     private void handleErrors(ParseResult result) {
         if (!result.errors().isEmpty()) {
             System.out.println("Usage: mp4grep [options] [search string] [files/directories]");
             System.out.println("Try \'mp4grep --help\' for more information");
-            System.exit(1);
+            System.exit(ERROR_EXIT_CODE);
         }
+    }
+
+    private void printUsageHelp() {
+        UsageHelpArgs helpArgs = new UsageHelpArgs();
+        CommandLine helpArguments = new CommandLine(helpArgs);
+        helpArguments.usage(System.out);
     }
 
     public Grepper createGrepper() {
@@ -71,10 +79,10 @@ public class ArgumentParser {
     private TranscriptArguments getTranscriptArguments() {
         return TranscriptArguments
                 .builder()
-                .files(FileParser.getFileList(argObject.section2.filesAndDirectories))
+                .files(FileParser.getFileList(mp4GrepArgs.filesAndDirectories))
                 .speechToText(getSpeechToText())
-                .search(argObject.section2.search)
-                .modelDirectory(argObject.section1.model)
+                .search(mp4GrepArgs.search)
+                .modelDirectory(mp4GrepArgs.model)
                 .build();
     }
 
@@ -85,16 +93,16 @@ public class ArgumentParser {
     private SearchArguments getSearchArguments() {
         return SearchArguments
                 .builder()
-                .search(argObject.section2.search)
+                .search(mp4GrepArgs.search)
                 .build();
     }
 
     private PrintArguments getPrintArguments() {
         return PrintArguments
                 .builder()
-                .wordsAfterMatch(argObject.section1.wordsToPrintAfterMatch)
-                .wordsBeforeMatch(argObject.section1.wordsToPrintBeforeMatch)
-                .search(argObject.section2.search)
+                .wordsAfterMatch(mp4GrepArgs.wordsToPrintAfterMatch)
+                .wordsBeforeMatch(mp4GrepArgs.wordsToPrintBeforeMatch)
+                .search(mp4GrepArgs.search)
                 .build();
     }
 }

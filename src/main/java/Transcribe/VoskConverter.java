@@ -2,17 +2,21 @@ package Transcribe;
 
 import ws.schild.jave.Encoder;
 import ws.schild.jave.EncoderException;
+import ws.schild.jave.InputFormatException;
 import ws.schild.jave.MultimediaObject;
 import ws.schild.jave.encode.AudioAttributes;
 import ws.schild.jave.encode.EncodingAttributes;
+import ws.schild.jave.info.AudioInfo;
+import ws.schild.jave.info.MultimediaInfo;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class VoskConverter {
-
     private static final int VOSK_ACCEPTED_SAMPLING_RATE = 16000;
     private static final int VOSK_NUMBER_ACCEPTED_CHANNELS = 1;
     private static final String VOSK_AUDIO_FILE_FORMAT = "wav";
@@ -85,5 +89,19 @@ public class VoskConverter {
             System.out.println("Error converting input file " + sourceFilename + " to VOSK-compatible WAV format.");
             e.printStackTrace();
         }
+    }
+
+    public static long getAudioDuration(String sourceFilename) {
+        File source = new File(sourceFilename);
+        MultimediaObject instance = new MultimediaObject(source);
+
+        MultimediaInfo info = null;
+        try {
+            info = instance.getInfo();
+        } catch (EncoderException e) {
+            System.out.println("Error finding audio duration");
+            e.printStackTrace();
+        }
+        return info.getDuration();
     }
 }

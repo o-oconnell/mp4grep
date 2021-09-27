@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.TreeMap;
 
 public class ProcessedTranscript {
-    private static final char DELIMITER = ' ';
-
     public String transcript;
     public TreeMap<Integer, Integer> indexToWordNumberMap;
 

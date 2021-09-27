@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class FileParser {
+    private static final String ANSI_RED_ERROR = "\u001B[31m";
+    private static final String ANSI_RESET = "\u001B[0m";
     private static final List<String> VALID_FILE_EXTENSIONS = List.of(
             "mp4",
             "ogg",
@@ -28,7 +30,7 @@ public class FileParser {
             } else if (isValidAudioFile(input)) {
                 files.add(input);
             } else {
-                System.out.println("Audio file \"" + input + "\" not found.");
+                System.out.println(ANSI_RED_ERROR + "Location \"" + input + "\" not found." + ANSI_RESET);
             }
         }
         return files;

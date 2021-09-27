@@ -79,8 +79,9 @@ public class VoskAdapter {
             FileInputStream fileInput = getFileInputStream(audioFileName);
             BufferedInputStream bufferedInput = new BufferedInputStream(fileInput);
             AudioInputStream = AudioSystem.getAudioInputStream(bufferedInput);
-        } catch (UnsupportedAudioFileException | IOException e ) {
+        } catch (UnsupportedAudioFileException | IOException e) {
             System.out.println("Audio file not found or audio file unsupported");
+            e.printStackTrace();
         }
 
         return AudioInputStream;
@@ -92,6 +93,7 @@ public class VoskAdapter {
             inputStream = new FileInputStream(audioFileName);
         } catch (java.io.FileNotFoundException e) {
             System.out.println("Failed to create new files stream from audio filename");
+            e.printStackTrace();
         }
         return inputStream;
     }
@@ -191,14 +193,14 @@ public class VoskAdapter {
     private String getHours(long secondsNum) {
         long hours =  TimeUnit.SECONDS.toHours(secondsNum);
         if (hours > 0) {
-            return String.valueOf(hours) + ":";
+            return hours + ":";
         } else {
             return "";
         }
     }
 
     private String getMinutes(long secondsNum) {
-        return String.valueOf(TimeUnit.SECONDS.toMinutes(secondsNum) - (TimeUnit.SECONDS.toHours(secondsNum)* 60) + ":");
+        return (TimeUnit.SECONDS.toMinutes(secondsNum) - TimeUnit.SECONDS.toHours(secondsNum)* 60) + ":";
     }
 
     private String getSeconds(long secondsNum) {

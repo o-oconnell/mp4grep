@@ -3,9 +3,7 @@ package Print;
 import Arguments.PrintArguments;
 import Search.Searcher;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -71,9 +69,13 @@ public class Printer {
     }
 
     public String getTranscriptPrint(IntegerPair matchPair, ProcessedTranscript processed) {
-        int previousDelimiterIndex = getPreviousDelimiterIndex(matchPair.end, processed.transcript);
-        int currentWordNumber = getCurrentWord(previousDelimiterIndex, processed.indexToWordNumberMap);
-        return getAllWords(currentWordNumber, processed.transcript);
+        int startPrevDelimiter = getPreviousDelimiterIndex(matchPair.start, processed.transcript);
+        int endPrevDelimiter = getPreviousDelimiterIndex(matchPair.end, processed.transcript);
+
+        int startWordNumber = getWordFromIndex(startPrevDelimiter, processed.indexToWordNumberMap);
+        int endWordNumber = getWordFromIndex(endPrevDelimiter, processed.indexToWordNumberMap);
+
+        return getAllWords(startWordNumber, endWordNumber, processed.transcript);
     }
 
     private int getPreviousDelimiterIndex(int currentIndex, String transcript) {
@@ -85,39 +87,51 @@ public class Printer {
         }
     }
 
-    private int getCurrentWord(int previousDelimiterIndex, TreeMap<Integer, Integer> indexToWordNumberMap) {
+    private int getWordFromIndex(int previousDelimiterIndex, TreeMap<Integer, Integer> indexToWordNumberMap) {
         int key = indexToWordNumberMap.floorKey(previousDelimiterIndex);
         return indexToWordNumberMap.get(key);
     }
 
-    private String getAllWords(int matchWordIndex, String transcript) {
+    private String getAllWords(int startWordNumber, int endWordNumber, String transcript) {
         List<String> wordList = getWordList(transcript);
-        highlightWord(matchWordIndex, wordList);
-        int start = getStartWordIndex(matchWordIndex, wordList);
-        int end = getEndWordIndex(matchWordIndex, wordList);
-
-        return buildStringFromList(wordList, start, end);
+        IntegerPair startEndIndexes = highlightMatches(startWordNumber, endWordNumber, wordList);
+        return buildStringFromList(wordList, startEndIndexes.start, startEndIndexes.end);
     }
 
     private List<String> getWordList(String transcript) {
-        return Arrays.asList(transcript.split(" "));
+        return new LinkedList<>(Arrays.asList(transcript.split(" ")));
     }
 
-    private void highlightWord(int matchWordIndex, List<String> wordList) {
-        List<IntegerPair> matchIndicesInWord = Searcher.findMatches(wordList.get(matchWordIndex), printArguments.search);
-        String word = wordList.get(matchWordIndex);
+    private IntegerPair highlightMatches(int matchStartIndex, int matchEndIndex, List<String> wordList) {
+        String allWordsInMatch = buildStringFromList(wordList, matchStartIndex, matchEndIndex);
+        List<IntegerPair> matchIndicesInWord = Searcher.findMatches(allWordsInMatch, printArguments.search);
+        IntegerPair newStartEndIndices = removeRangeFromList(matchStartIndex, matchEndIndex, wordList);
 
+        // Codified behavior: when two of the same match exist in the same word, both will be printed on the same
+        // match line.
+        int matchOffset = 0;
         for (IntegerPair matchPair : matchIndicesInWord) {
-            word = word.substring(0, matchPair.start) +
+            allWordsInMatch = allWordsInMatch.substring(0, matchPair.start + matchOffset) +
                     ANSI_RED_MATCH_HIGHLIGHT +
-                    word.substring(matchPair.start, matchPair.end) +
+                    allWordsInMatch.substring(matchPair.start + matchOffset, matchPair.end + matchOffset) +
                     ANSI_RESET +
-                    word.substring(matchPair.end);
+                    allWordsInMatch.substring(matchPair.end + matchOffset);
+            matchOffset += (ANSI_RED_MATCH_HIGHLIGHT.length() + ANSI_RESET.length());
         }
-        wordList.set(matchWordIndex, word);
+
+        wordList.add(matchStartIndex, allWordsInMatch);
+        return new IntegerPair(getStartWordIndex(newStartEndIndices.start), getEndWordIndex(newStartEndIndices.end, wordList));
     }
 
-    private int getStartWordIndex(int matchWordIndex, List<String> wordList) {
+    private IntegerPair removeRangeFromList(int start, int end, List<String> wordList) {
+        int removeIndex = start;
+        for (int i = start; i <= end; ++i) {
+            wordList.remove(removeIndex);
+        }
+        return new IntegerPair(removeIndex, removeIndex);
+    }
+
+    private int getStartWordIndex(int matchWordIndex) {
         return ceilToSize(0, matchWordIndex - printArguments.wordsBeforeMatch);
     }
 
@@ -138,6 +152,6 @@ public class Printer {
         for (int i = start; i <= end; ++i) {
             result += wordList.get(i) + " ";
         }
-        return result;
+        return result.substring(0, result.length() - 1); // remove trailing space
     }
 }
