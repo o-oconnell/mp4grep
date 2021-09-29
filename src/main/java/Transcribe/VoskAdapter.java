@@ -65,7 +65,6 @@ public class VoskAdapter {
     private void createBlankFile(String filename) {
         try {
             File transcript = new File(filename);
-            transcript.delete();
             transcript.createNewFile();
         } catch (IOException e) {
             System.out.println("Error creating transcript file.");

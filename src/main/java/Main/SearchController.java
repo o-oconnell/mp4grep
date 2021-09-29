@@ -10,13 +10,14 @@ import lombok.Builder;
 import java.util.List;
 
 @Builder
-public class Grepper {
-    TranscriptAdapter transcriptionAdapter;
+public class SearchController implements Controller {
+    TranscriptAdapter transcriptAdapter;
     SearchAdapter searchAdapter;
     PrintAdapter printAdapter;
 
+    @Override
     public void execute() {
-        List<Searchable> searchables = transcriptionAdapter.getSearchables();
+        List<Searchable> searchables = transcriptAdapter.getSearchables();
         List<Printable> printables = searchAdapter.getPrintables(searchables);
         printAdapter.print(printables);
     }

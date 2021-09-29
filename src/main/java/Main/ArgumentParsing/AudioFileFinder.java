@@ -1,4 +1,6 @@
-package Main;
+package Main.ArgumentParsing;
+
+import Globals.GlobalColors;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -8,9 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
-public class FileParser {
-    private static final String ANSI_RED_ERROR = "\u001B[31m";
-    private static final String ANSI_RESET = "\u001B[0m";
+public class AudioFileFinder {
     private static final List<String> VALID_FILE_EXTENSIONS = List.of(
             "mp4",
             "ogg",
@@ -30,7 +30,7 @@ public class FileParser {
             } else if (isValidAudioFile(input)) {
                 files.add(input);
             } else {
-                System.out.println(ANSI_RED_ERROR + "Location \"" + input + "\" not found." + ANSI_RESET);
+                System.out.println(GlobalColors.ANSI_RED + "Location \"" + input + "\" not found." + GlobalColors.ANSI_RESET);
             }
         }
         return files;
@@ -65,6 +65,7 @@ public class FileParser {
             if (fileExtension.equals(extension))
                 return true;
         }
+
         return false;
     }
 

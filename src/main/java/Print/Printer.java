@@ -1,6 +1,7 @@
 package Print;
 
 import Arguments.PrintArguments;
+import Globals.GlobalColors;
 import Search.Searcher;
 
 import java.util.*;
@@ -9,11 +10,6 @@ import java.util.stream.IntStream;
 
 public class Printer {
     private static final char DELIMITER = ' ';
-    private static final String ANSI_RED_MATCH_HIGHLIGHT = "\u001B[31m";
-    private static final String ANSI_GREEN_FILENAME = "\u001b[32m";
-    private static final String ANSI_BLUE_TIMESTAMP = "\u001b[34m";
-    private static final String ANSI_RESET = "\u001B[0m";
-
     private PrintArguments printArguments;
 
     public Printer(PrintArguments printArguments) {
@@ -27,7 +23,7 @@ public class Printer {
 
     private void printFilename(Printable printable) {
         System.out.println();
-        System.out.println(ANSI_GREEN_FILENAME + printable.filename + ANSI_RESET);
+        System.out.println(GlobalColors.ANSI_GREEN + printable.filename + GlobalColors.ANSI_RESET);
     }
 
     private void printMatches(Printable printable) {
@@ -50,7 +46,7 @@ public class Printer {
 
     private void printMatch(IntegerPair matchPair, ProcessedTranscript processedTranscript, ProcessedTimestamps processedTimestamps) {
         System.out.println(
-                ANSI_BLUE_TIMESTAMP + "[" + getTimestampPrint(matchPair, processedTimestamps) + "] " + ANSI_RESET
+                GlobalColors.ANSI_BLUE + "[" + getTimestampPrint(matchPair, processedTimestamps) + "] " + GlobalColors.ANSI_RESET
                 + getTranscriptPrint(matchPair, processedTranscript));
     }
 
@@ -112,11 +108,11 @@ public class Printer {
         int matchOffset = 0;
         for (IntegerPair matchPair : matchIndicesInWord) {
             allWordsInMatch = allWordsInMatch.substring(0, matchPair.start + matchOffset) +
-                    ANSI_RED_MATCH_HIGHLIGHT +
+                    GlobalColors.ANSI_RED +
                     allWordsInMatch.substring(matchPair.start + matchOffset, matchPair.end + matchOffset) +
-                    ANSI_RESET +
+                    GlobalColors.ANSI_RESET +
                     allWordsInMatch.substring(matchPair.end + matchOffset);
-            matchOffset += (ANSI_RED_MATCH_HIGHLIGHT.length() + ANSI_RESET.length());
+            matchOffset += (GlobalColors.ANSI_RED.length() + GlobalColors.ANSI_RESET.length());
         }
 
         wordList.add(matchStartIndex, allWordsInMatch);

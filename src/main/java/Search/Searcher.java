@@ -30,7 +30,7 @@ public class Searcher {
                 .build();
     }
 
-    private String getContentsWithoutNewlines(File file) {
+    public static String getContentsWithoutNewlines(File file) {
         String result = null;
         try {
             result = FileUtils.readFileToString(file, FILE_UTILS_PLATFORM_DEFAULT_CHARSET);
@@ -41,7 +41,7 @@ public class Searcher {
         return stripNewlines(result);
     }
 
-    private String stripNewlines(String input) {
+    private static String stripNewlines(String input) {
         return input.replace("\n", " ").replace("\r", "");
     }
 

@@ -27,7 +27,7 @@ public class TranscriptAdapter {
 
 
         List<Searchable> searchables = new LinkedList<>();
-        ProgressBar.wrap(files.parallelStream(), "Transcribing audio files:").forEach(file ->
+        ProgressBar.wrap(files.parallelStream(), "Transcribing/retrieving cached audio files:").forEach(file ->
         {
             Searchable search = callCacheForInput(file);
             searchables.add(search);
