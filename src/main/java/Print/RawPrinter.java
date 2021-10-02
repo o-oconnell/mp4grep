@@ -1,6 +1,7 @@
 package Print;
 
 import Arguments.RawPrintArguments;
+import Globals.GlobalColors;
 import Search.Searchable;
 import Search.Searcher;
 
@@ -26,7 +27,7 @@ public class RawPrinter {
         Deque<String> timestamps = new LinkedList<>(Arrays.asList(Searcher.getContentsWithoutNewlines(searchable.timestampFile).split(" ")));
 
         while (!words.isEmpty()) {
-            String current = timestamps.getFirst();
+            String current = "[" + timestamps.getFirst() + "]";
             int i = 0;
             for (; i < arguments.wordsPerLine; ++i) {
                 if (!words.isEmpty()) {
@@ -40,7 +41,7 @@ public class RawPrinter {
         if (arguments.printToFiles == true) {
             printToFile(printList, searchable.filename);
         } else {
-            System.out.println("Transcription of " + searchable.filename);
+            System.out.println(GlobalColors.ANSI_GREEN + "Transcription of " + searchable.filename + GlobalColors.ANSI_RESET);
             printList.stream().forEach(System.out::println);
         }
     }

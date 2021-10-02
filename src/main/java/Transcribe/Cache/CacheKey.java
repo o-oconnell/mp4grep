@@ -11,8 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import static Globals.GlobalLocations.CACHE_DIRECTORY;
+
 public class CacheKey {
-    private static final String CACHE_DIRECTORY = ".cache";
     private static final String TRANSCRIPT_FILE_EXTENSION = ".transcript";
     private static final String TIMESTAMP_FILE_EXTENSION = ".timestamp";
 

@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'application'
+    id 'org.jreleaser' version '0.7.0'
 }
 
 group 'org.example'
@@ -16,14 +18,14 @@ repositories {
 }
 
 dependencies {
-    // necessary so that slf4j has a logging implementation for jave-core
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.14.1'
+    implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.32'
     implementation group: 'ws.schild', name: 'jave-core', version: '3.2.0'
+    implementation group: 'ws.schild', name: 'jave-nativebin-linux64', version: '3.2.0'
     implementation group: 'me.tongfei', name: 'progressbar', version: '0.9.2'
     implementation group: 'com.google.re2j', name: 're2j', version: '1.6'
-    implementation group: 'com.google.inject', name: 'guice', version: '5.0.1'
     implementation group: 'org.apache.commons', name: 'commons-io', version: '1.3.2'
-    
+    implementation group: 'com.google.guava', name: 'guava', version: '11.0.2'
+
     implementation group: 'info.picocli', name: 'picocli', version: '4.6.1'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.1'
 
@@ -56,4 +58,30 @@ sourceSets {
     }
 }
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'Main.MP4grep'
+    }
+}
 
+application {
+    mainClass = 'Main.MP4grep'
+}
+
+jreleaser {
+    project {
+        website = 'https://acme.com/app'
+        authors = ['Duke']
+        license = 'Apache-2.0'
+        description = "mp4grep"
+        extraProperties.put('inceptionYear', '2021')
+    }
+
+    release {
+        github {
+            owner = 'o-oconnell'
+            overwrite = true
+            token = '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'
+        }
+    }
+}

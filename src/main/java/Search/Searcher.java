@@ -15,7 +15,6 @@ import com.google.re2j.Pattern;
 
 public class Searcher {
     private static final String FILE_UTILS_PLATFORM_DEFAULT_CHARSET = null;
-    private static final char DELIMITER = ' ';
 
     public Printable getPrintableSearchResult(Searchable searchable, String search) {
         String transcript = getContentsWithoutNewlines(searchable.transcriptFile);

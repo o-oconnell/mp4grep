@@ -32,7 +32,7 @@ public class SearchParser implements Parser {
     private void parseSearchArguments(String[] args) {
         CommandLine arguments = makeCommandLine(searchWorkflowArgs);
         CommandLine.ParseResult result = arguments.parseArgs(args);
-        handleErrors(result);
+        ParseErrorHandler.handleErrors(result);
 
         if (arguments.isUsageHelpRequested()) {
             ParseErrorHandler.printUsageHelp();
@@ -43,18 +43,6 @@ public class SearchParser implements Parser {
         CommandLine arguments = new CommandLine(args);
         arguments.getCommandSpec().parser().collectErrors(true);
         return arguments;
-    }
-
-    private void handleErrors(CommandLine.ParseResult result) {
-        if (!result.errors().isEmpty()) {
-            System.out.println("Usage: mp4grep [options] [search string] [files/directories]");
-            System.out.println("Try \'mp4grep --help\' for more information");
-
-            for (Exception e : result.errors()) {
-                System.out.println(e);
-            }
-            System.exit(GlobalErrorCodes.ERROR_EXIT_CODE);
-        }
     }
 
     private TranscriptArguments getTranscriptArguments() {

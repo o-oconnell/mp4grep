@@ -21,6 +21,9 @@ public class SearchWorkflowArgs {
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Display a help message")
     private boolean helpRequested = false;
 
+    @Option(names = {"--clear-cache"}, description = "Clear the cache")
+    private boolean clearCache = false;
+
     @Parameters(index = "0", arity = "1", paramLabel = "<search string>", description = "Pattern to find in audio/video file transcriptions")
     public String search = null;
 

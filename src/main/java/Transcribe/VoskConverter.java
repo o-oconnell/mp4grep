@@ -1,18 +1,15 @@
 package Transcribe;
 
+
 import ws.schild.jave.Encoder;
 import ws.schild.jave.EncoderException;
-import ws.schild.jave.InputFormatException;
 import ws.schild.jave.MultimediaObject;
 import ws.schild.jave.encode.AudioAttributes;
 import ws.schild.jave.encode.EncodingAttributes;
-import ws.schild.jave.info.AudioInfo;
 import ws.schild.jave.info.MultimediaInfo;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 

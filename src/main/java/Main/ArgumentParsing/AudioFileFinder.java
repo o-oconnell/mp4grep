@@ -40,10 +40,10 @@ public class AudioFileFinder {
         File directory = new File(directoryName);
         File[] allFiles = directory.listFiles();
 
-        List<String> result = new LinkedList<String>();
+        List<String> result = new LinkedList<>();
         for (File file : allFiles) {
             if (isAudioFile(file.getName()))
-                result.add(directoryName + "/" + file.getName());
+                result.add(file.getAbsolutePath());
         }
         return result;
     }

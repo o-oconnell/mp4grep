@@ -4,6 +4,7 @@ import Arguments.TranscriptArguments;
 import Search.Searchable;
 import Transcribe.Cache.TranscriptCache;
 import me.tongfei.progressbar.ProgressBar;
+import me.tongfei.progressbar.ProgressBarBuilder;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -25,13 +26,9 @@ public class TranscriptAdapter {
             return new LinkedList<>();
         }
 
-
-        List<Searchable> searchables = new LinkedList<>();
-        ProgressBar.wrap(files.parallelStream(), "Transcribing/retrieving cached audio files:").forEach(file ->
-        {
-            Searchable search = callCacheForInput(file);
-            searchables.add(search);
-        });
+        List<Searchable> searchables = ProgressBar.wrap(files.parallelStream()
+                .map(this::callCacheForInput), "Transcribing audio files")
+                .collect(Collectors.toList());
 
         return searchables;
     }

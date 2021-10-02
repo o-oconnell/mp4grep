@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Command(name = "mp4grep")
-public class RawWorkflowArgs {
+public class TranscribeWorkflowArgs {
     @Parameters(index = "0..*", arity = "1..*", paramLabel = "<files/directories>", description = "Space-separated list of files and directories to grep")
     public List<String> filesAndDirectories = new LinkedList<>();
 
@@ -24,10 +24,10 @@ public class RawWorkflowArgs {
     ExclusiveOptions exclusiveOptions = new ExclusiveOptions();
 
     public static class ExclusiveOptions {
-        @Option(names = {"--raw"})
-        public boolean rawTranscribe = false;
+        @Option(names = {"--transcribe"})
+        public boolean transcribe = false;
 
-        @Option(names = {"--raw-to-file"})
-        public boolean rawTranscribeToFiles = false;
+        @Option(names = {"--transcribe-to-files"})
+        public boolean transcribeToFiles = false;
     }
 }

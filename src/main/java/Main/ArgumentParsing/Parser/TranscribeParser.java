@@ -14,9 +14,9 @@ import lombok.NonNull;
 import picocli.CommandLine;
 
 @Builder
-public class RawParser implements Parser {
+public class TranscribeParser implements Parser {
     @NonNull private String[] args;
-    private static final RawWorkflowArgs rawWorkflowArgs = new RawWorkflowArgs();
+    private static final TranscribeWorkflowArgs rawWorkflowArgs = new TranscribeWorkflowArgs();
 
     public Controller getController() {
         parseRawArguments(args);
@@ -33,7 +33,7 @@ public class RawParser implements Parser {
         ParseErrorHandler.handleErrors(result);
     }
 
-    private CommandLine makeCommandLine(RawWorkflowArgs args) {
+    private CommandLine makeCommandLine(TranscribeWorkflowArgs args) {
         CommandLine arguments = new CommandLine(args);
         arguments.getCommandSpec().parser().collectErrors(true);
         return arguments;
@@ -46,7 +46,7 @@ public class RawParser implements Parser {
         }
         return RawPrintArguments
                 .builder()
-                .printToFiles(rawWorkflowArgs.exclusiveOptions.rawTranscribeToFiles)
+                .printToFiles(rawWorkflowArgs.exclusiveOptions.transcribeToFiles)
                 .wordsPerLine(rawWorkflowArgs.wordsPerLine)
                 .build();
     }

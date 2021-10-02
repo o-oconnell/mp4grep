@@ -5,8 +5,12 @@ import Transcribe.Cache.CacheInfo;
 import Transcribe.Cache.CacheKey;
 import Transcribe.VoskAdapter;
 import Transcribe.VoskProxy;
+import org.apache.commons.io.FileUtils;
+
+import static Globals.GlobalLocations.CACHE_DIRECTORY;
 
 import java.io.File;
+import java.io.IOException;
 
 public class TranscriptCache {
     private VoskAdapter speechToText;
@@ -44,6 +48,15 @@ public class TranscriptCache {
                 .transcriptFilename(cacheKey.getTranscriptFilename())
                 .modelDirectory(cacheKey.getModelDirectory())
                 .build();
+    }
+
+    public static void clearCacheFiles() {
+        File cacheDirectory = new File(CACHE_DIRECTORY);
+        try {
+            FileUtils.cleanDirectory(cacheDirectory);
+        } catch (IOException e) {
+            System.out.println("Failed to clear the cache directory: " + cacheDirectory.getAbsolutePath());
+        }
     }
 }
 
