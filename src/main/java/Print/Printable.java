@@ -10,5 +10,5 @@ public class Printable {
     public String transcript;
     public String timestamps;
     public String filename;
-    List<IntegerPair> matchIndices;
+    public List<IntegerPair> matchIndices;
 }

@@ -1,6 +1,6 @@
 package Main;
 
-import Print.PrintAdapter;
+import Print.SearchPrint.SearchPrintAdapter;
 import Print.Printable;
 import Search.SearchAdapter;
 import Search.Searchable;
@@ -13,7 +13,7 @@ import java.util.List;
 public class SearchController implements Controller {
     TranscriptAdapter transcriptAdapter;
     SearchAdapter searchAdapter;
-    PrintAdapter printAdapter;
+    SearchPrintAdapter printAdapter;
 
     @Override
     public void execute() {

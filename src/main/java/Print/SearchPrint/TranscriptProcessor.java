@@ -1,81 +1,74 @@
-package Print;
+package Print.SearchPrint;
 
 import Arguments.PrintArguments;
-import Globals.GlobalColors;
+import Print.IntegerPair;
+import Print.Printable;
 import Search.Searcher;
+import lombok.Builder;
+import lombok.NonNull;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class Printer {
-    private static final char DELIMITER = ' ';
-    private PrintArguments printArguments;
+import static Globals.GlobalColors.ANSI_RED;
+import static Globals.GlobalColors.ANSI_RESET;
 
-    public Printer(PrintArguments printArguments) {
-        this.printArguments = printArguments;
+@Builder
+public class TranscriptProcessor {
+    private final char TRANSCRIPT_DELIMITER = ' ';
+    private TreeMap<Integer, Integer> indexToWordNumberMap;
+
+    @NonNull private Printable printable;
+    @NonNull private PrintArguments printArguments;
+
+    public List<String> getTranscriptMatches() {
+        this.indexToWordNumberMap = makeIndexToWordNumberMap();
+        return printable.matchIndices.stream()
+                .map(this::getTranscriptPrint)
+                .collect(Collectors.toList());
     }
 
-    public void print(Printable printable) {
-        printFilename(printable);
-        printMatches(printable);
-    }
-
-    private void printFilename(Printable printable) {
-        System.out.println();
-        System.out.println(GlobalColors.ANSI_GREEN + printable.filename + GlobalColors.ANSI_RESET);
-    }
-
-    private void printMatches(Printable printable) {
+    private TreeMap<Integer, Integer> makeIndexToWordNumberMap() {
         List<Integer> delimiterIndices = getDelimiterIndices(printable.transcript);
-        ProcessedTranscript processedTranscript = new ProcessedTranscript(printable.transcript, delimiterIndices);
-        ProcessedTimestamps processedTimestamps = new ProcessedTimestamps(printable.timestamps, delimiterIndices);
+        TreeMap<Integer, Integer> wordNumberMap = new TreeMap<>();
 
-        printable.matchIndices.stream()
-                .forEach(integerPair -> printMatch(integerPair, processedTranscript, processedTimestamps));
+        var matchWordIndex = new Object() {
+            int index = 0;
+        };
+        delimiterIndices
+                .stream()
+                .forEach(delimiterIndex -> {
+                    wordNumberMap.put(delimiterIndex, matchWordIndex.index);
+                    matchWordIndex.index++;
+                });
+        return wordNumberMap;
     }
 
     private List<Integer> getDelimiterIndices(String string) {
         List<Integer> indices = IntStream.range(0, string.length() - 1)
                 .boxed()
-                .filter(i -> string.charAt(i) == DELIMITER)
+                .filter(i -> string.charAt(i) == TRANSCRIPT_DELIMITER)
                 .collect(Collectors.toList());
         indices.add(0, 0);
         return indices;
     }
 
-    private void printMatch(IntegerPair matchPair, ProcessedTranscript processedTranscript, ProcessedTimestamps processedTimestamps) {
-        System.out.println(
-                GlobalColors.ANSI_BLUE + "[" + getTimestampPrint(matchPair, processedTimestamps) + "] " + GlobalColors.ANSI_RESET
-                + getTranscriptPrint(matchPair, processedTranscript));
-    }
+    public String getTranscriptPrint(IntegerPair matchPair) {
+        int startPrevDelimiter = getPreviousDelimiterIndex(matchPair.start, printable.transcript);
+        int endPrevDelimiter = getPreviousDelimiterIndex(matchPair.end, printable.transcript);
 
-    public String getTimestampPrint(IntegerPair matchPair, ProcessedTimestamps processed) {
-        int index = processed.transcriptTimestampMap.floorKey(matchPair.start);
-        String timestamp = processed.transcriptTimestampMap.get(index);
+        int startWordNumber = getWordFromIndex(startPrevDelimiter, indexToWordNumberMap);
+        int endWordNumber = getWordFromIndex(endPrevDelimiter, indexToWordNumberMap);
 
-        for (int i = 0; i < printArguments.wordsBeforeMatch; ++i) {
-            Integer prevKey = processed.transcriptTimestampMap.lowerKey(index);
-            if (prevKey != null) {
-                index = prevKey;
-                timestamp = processed.transcriptTimestampMap.get(prevKey);
-            }
-        }
-        return timestamp;
-    }
-
-    public String getTranscriptPrint(IntegerPair matchPair, ProcessedTranscript processed) {
-        int startPrevDelimiter = getPreviousDelimiterIndex(matchPair.start, processed.transcript);
-        int endPrevDelimiter = getPreviousDelimiterIndex(matchPair.end, processed.transcript);
-
-        int startWordNumber = getWordFromIndex(startPrevDelimiter, processed.indexToWordNumberMap);
-        int endWordNumber = getWordFromIndex(endPrevDelimiter, processed.indexToWordNumberMap);
-
-        return getAllWords(startWordNumber, endWordNumber, processed.transcript);
+        return getAllWords(startWordNumber, endWordNumber, printable.transcript);
     }
 
     private int getPreviousDelimiterIndex(int currentIndex, String transcript) {
-        int prevIndex = transcript.lastIndexOf(DELIMITER, currentIndex - 1);
+        int prevIndex = transcript.lastIndexOf(TRANSCRIPT_DELIMITER, currentIndex - 1);
         if (prevIndex < 0) {
             return 0;
         } else {
@@ -108,11 +101,11 @@ public class Printer {
         int matchOffset = 0;
         for (IntegerPair matchPair : matchIndicesInWord) {
             allWordsInMatch = allWordsInMatch.substring(0, matchPair.start + matchOffset) +
-                    GlobalColors.ANSI_RED +
+                    ANSI_RED +
                     allWordsInMatch.substring(matchPair.start + matchOffset, matchPair.end + matchOffset) +
-                    GlobalColors.ANSI_RESET +
+                    ANSI_RESET +
                     allWordsInMatch.substring(matchPair.end + matchOffset);
-            matchOffset += (GlobalColors.ANSI_RED.length() + GlobalColors.ANSI_RESET.length());
+            matchOffset += (ANSI_RED.length() + ANSI_RESET.length());
         }
 
         wordList.add(matchStartIndex, allWordsInMatch);

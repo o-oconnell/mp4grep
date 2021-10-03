@@ -1,6 +1,6 @@
 package Main;
 
-import Print.RawPrintAdapter;
+import Print.TranscribePrint.TranscribePrintAdapter;
 import Search.Searchable;
 import Transcribe.TranscriptAdapter;
 import lombok.Builder;
@@ -10,7 +10,7 @@ import java.util.List;
 @Builder
 public class RawTranscriptController implements Controller {
     private TranscriptAdapter transcriptAdapter;
-    private RawPrintAdapter rawPrintAdapter;
+    private TranscribePrintAdapter rawPrintAdapter;
 
     @Override
     public void execute() {

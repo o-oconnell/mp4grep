@@ -6,7 +6,7 @@ import Globals.GlobalErrorCodes;
 import Main.ArgumentParsing.AudioFileFinder;
 import Main.Controller;
 import Main.RawTranscriptController;
-import Print.RawPrintAdapter;
+import Print.TranscribePrint.TranscribePrintAdapter;
 import Transcribe.TranscriptAdapter;
 import Transcribe.VoskAdapter;
 import lombok.Builder;
@@ -22,7 +22,7 @@ public class TranscribeParser implements Parser {
         parseRawArguments(args);
         return RawTranscriptController
                 .builder()
-                .rawPrintAdapter(new RawPrintAdapter(getRawPrintArguments()))
+                .rawPrintAdapter(new TranscribePrintAdapter(getRawPrintArguments()))
                 .transcriptAdapter(new TranscriptAdapter(getRawTranscriptArguments()))
                 .build();
     }

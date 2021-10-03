@@ -3,11 +3,10 @@ package Main.ArgumentParsing.Parser;
 import Arguments.PrintArguments;
 import Arguments.SearchArguments;
 import Arguments.TranscriptArguments;
-import Globals.GlobalErrorCodes;
 import Main.ArgumentParsing.AudioFileFinder;
 import Main.Controller;
 import Main.SearchController;
-import Print.PrintAdapter;
+import Print.SearchPrint.SearchPrintAdapter;
 import Search.SearchAdapter;
 import Transcribe.TranscriptAdapter;
 import Transcribe.VoskAdapter;
@@ -25,7 +24,7 @@ public class SearchParser implements Parser {
                 .builder()
                 .transcriptAdapter(new TranscriptAdapter(getTranscriptArguments()))
                 .searchAdapter(new SearchAdapter(getSearchArguments()))
-                .printAdapter(new PrintAdapter(getPrintArguments()))
+                .printAdapter(new SearchPrintAdapter(getPrintArguments()))
                 .build();
     }
 

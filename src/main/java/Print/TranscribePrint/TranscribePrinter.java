@@ -1,4 +1,4 @@
-package Print;
+package Print.TranscribePrint;
 
 import Arguments.RawPrintArguments;
 import Globals.GlobalColors;
@@ -12,12 +12,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 
-public class RawPrinter {
+public class TranscribePrinter {
     private static String TRANSCRIBED_FILE_EXTENSION = "_transcribed.txt";
     private static int ERROR_EXIT_CODE = 1;
     private RawPrintArguments arguments;
 
-    public RawPrinter(RawPrintArguments arguments) {
+    public TranscribePrinter(RawPrintArguments arguments) {
         this.arguments = arguments;
     }
 
