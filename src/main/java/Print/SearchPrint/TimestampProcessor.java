@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
 
 // Finds all of the correct timestamps to print out for a printable
 @Builder
-public class TimestampsProcessor {
+public class TimestampProcessor {
     private final char TRANSCRIPT_DELIMITER = ' ';
     private TreeMap<Integer, String> transcriptTimestampMap;
 

@@ -3,12 +3,13 @@ package Print.SearchPrint;
 import Arguments.PrintArguments;
 import Print.Printable;
 import lombok.Builder;
+import lombok.NonNull;
 
 import java.util.List;
 
 @Builder
 public class SearchPrintAdapter {
-    private PrintArguments printArguments;
+    @NonNull private PrintArguments printArguments;
 
     public SearchPrintAdapter(PrintArguments printArguments) {
         this.printArguments = printArguments;
