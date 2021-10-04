@@ -128,16 +128,19 @@ public class VoskAdapter {
     private void writeToCacheFiles(String jsonInput, CacheInfo cacheInfo) {
         JsonObject jsonParseObject = getJsonObject(jsonInput);
 
-        if (jsonParseObject.has("result")) {
-            JsonArray allTimestampedWords = getAllWords(jsonParseObject);
-            for (JsonElement wordInfo : allTimestampedWords) {
-                String startTime = getStringAttribute("start", wordInfo);
-                String word = getStringAttribute("word", wordInfo);
-                writeToFile(word, cacheInfo.transcriptFilename);
-                writeToFile(getTimestampFormat(startTime), cacheInfo.timestampFilename);
-            }
-        } else {
+        if (!jsonParseObject.has("result")) {
             // Do nothing. No audio was transcribed.
+            return;
+        }
+
+        JsonArray allTimestampedWords = getAllWords(jsonParseObject);
+        for (JsonElement wordInfo : allTimestampedWords) {
+            String startTime = getStringAttribute("start", wordInfo);
+            String word = getStringAttribute("word", wordInfo);
+            writeToFile(word, cacheInfo.transcriptFilename);
+            writeToFile(getTimestampFormat(startTime), cacheInfo.timestampFilename);
+            // TODO: write to both files as an atomic operation
+            // Write to both in the same function using a single try-catch block.
         }
     }
 

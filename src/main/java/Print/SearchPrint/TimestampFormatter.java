@@ -10,7 +10,7 @@ public class TimestampFormatter {
     public static List<String> format(List<String> timestamps) {
         IntStream.range(0, timestamps.size())
                 .forEach(i -> {
-                    timestamps.set(i, ANSI_BLUE + "[" + timestamps.get(i) + "] " + ANSI_RESET);
+                    timestamps.set(i, ANSI_BLUE + "[" + timestamps.get(i) + "]" + ANSI_RESET);
                 });
 
         return timestamps;

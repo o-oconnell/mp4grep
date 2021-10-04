@@ -24,7 +24,7 @@ public class TimestampProcessor {
     public List<String> getTimestampMatches() {
         this.transcriptTimestampMap = getTranscriptTimestampMap();
         return printable.matchIndices.stream()
-                .map(this::getTimestampPrint)
+                .map(this::getTimestamp)
                 .collect(Collectors.toList());
     }
 
@@ -43,8 +43,7 @@ public class TimestampProcessor {
     }
 
     private List<Integer> getTranscriptDelimiterIndices(String transcript) {
-        List<Integer> indices = IntStream.range(0, transcript.length() - 1)
-                .boxed()
+        List<Integer> indices = IntStream.range(0, transcript.length()).boxed()
                 .filter(i -> transcript.charAt(i) == TRANSCRIPT_DELIMITER)
                 .collect(Collectors.toList());
         indices.add(0, 0);
@@ -55,17 +54,18 @@ public class TimestampProcessor {
         return Arrays.asList(timestampsText.split(" "));
     }
 
-    public String getTimestampPrint(IntegerPair matchPair) {
+    public String getTimestamp(IntegerPair matchPair) {
         int index = transcriptTimestampMap.floorKey(matchPair.start);
-        String timestamp = transcriptTimestampMap.get(index);
 
         for (int i = 0; i < printArguments.wordsBeforeMatch; ++i) {
             Integer prevKey = transcriptTimestampMap.lowerKey(index);
-            if (prevKey != null) {
-                index = prevKey;
-                timestamp = transcriptTimestampMap.get(prevKey);
+
+            if (prevKey == null) {
+                break;
             }
+            index = prevKey;
         }
-        return timestamp;
+
+        return transcriptTimestampMap.get(index);
     }
 }

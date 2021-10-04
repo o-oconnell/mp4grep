@@ -19,7 +19,7 @@ public class SearchPrintAdapter {
         printables.stream().forEach(this::print);
     }
 
-    public void print(Printable printable) {
+    private void print(Printable printable) {
         SearchPrinter printer = SearchPrinter.builder()
                         .printable(printable)
                         .printArguments(printArguments)

@@ -28,7 +28,7 @@ public class Searcher {
                 .matchIndices(findMatches(transcript, search))
                 .build();
     }
-
+    //TODO private
     public static String getContentsWithoutNewlines(File file) {
         String result = null;
         try {
@@ -43,9 +43,9 @@ public class Searcher {
     private static String stripNewlines(String input) {
         return input.replace("\n", " ").replace("\r", "");
     }
-
+// TODO private
     public static List<IntegerPair> findMatches(String transcript, String search) {
-        List<IntegerPair> result = new LinkedList<IntegerPair>();
+        List<IntegerPair> result = new LinkedList<>();
         Pattern pattern = Pattern.compile(search);
         Matcher matcher = pattern.matcher(transcript);
 
