@@ -11,20 +11,72 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static Globals.GlobalColors.*;
-import static Globals.GlobalErrorCodes.ERROR_EXIT_CODE;
 
 // Responsibility: prints all matches for a file
 @Builder
 public class SearchPrinter {
-    private static final char DELIMITER = ' ';
-    private static final String TIMESTAMP_TRANSCRIPT_SEPARATOR = " ";
     private final char TRANSCRIPT_DELIMITER = ' ';
     @NonNull private PrintArguments printArguments;
     @NonNull private Printable printable;
-    TreeMap<Integer, Integer> indexToWordNumberMap;
-    TreeMap<Integer, String> transcriptTimestampMap;
 
-    private TreeMap<Integer, String> getTranscriptTimestampMap() {
+    public void print() {
+        printFilename();
+        printMatches();
+    }
+
+    private void printFilename() {
+        System.out.println();
+        System.out.println(ANSI_GREEN + printable.filename + ANSI_RESET);
+    }
+
+    private void printMatches() {
+        TreeMap<Integer, Integer> indexToWordNumberMap = makeIndexToWordNumberMap();
+        TreeMap<Integer, String> transcriptTimestampMap = makeTranscriptTimestampMap();
+        List<String> transcriptWordList = getWordList(printable.transcript);
+
+        for (IntegerPair matchPair : printable.matchIndices) {
+            String timestamp = getTimestamp(matchPair, transcriptTimestampMap);
+            String wordsBefore = getWordsBefore(matchPair, indexToWordNumberMap, transcriptWordList); // words before the first word in which the match is contained
+            String match = getMatch(matchPair); // all words across which the match spans, with the match highlighted
+            String wordsAfter = getWordsAfter(matchPair, indexToWordNumberMap, transcriptWordList); // words after the last word in which the match is contained
+
+            printResult(timestamp, wordsBefore, match, wordsAfter);
+        }
+    }
+
+    private void printResult(String timestamp, String wordsBefore, String match, String wordsAfter) {
+        String result = timestamp + " ";
+        if (wordsBefore.length() > 0) {
+            result += wordsBefore + " ";
+        }
+        result += match;
+        if (wordsAfter.length() > 0) {
+            result += " " + wordsAfter;
+        }
+        System.out.println(result);
+    }
+
+    private TreeMap<Integer, Integer> makeIndexToWordNumberMap() {
+        List<Integer> delimiterIndices = getTranscriptDelimiterIndices(printable.transcript);
+        TreeMap<Integer, Integer> wordNumberMap = new TreeMap<>();
+
+        IntStream.range(0, delimiterIndices.size()).boxed()
+                .forEach(i -> {
+                    wordNumberMap.put(delimiterIndices.get(i), i);
+                });
+
+        return wordNumberMap;
+    }
+
+    private List<Integer> getTranscriptDelimiterIndices(String transcript) {
+        List<Integer> indices = IntStream.range(0, transcript.length()).boxed()
+                .filter(i -> transcript.charAt(i) == TRANSCRIPT_DELIMITER)
+                .collect(Collectors.toList());
+        indices.add(0, 0);
+        return indices;
+    }
+
+    private TreeMap<Integer, String> makeTranscriptTimestampMap() {
         List<Integer> transcriptDelimiterIndices = getTranscriptDelimiterIndices(printable.transcript);
         TreeMap<Integer, String> transcriptTimestampMap = new TreeMap<>();
         List<String> timestamps = getTimestamps(printable.timestamps);
@@ -42,69 +94,11 @@ public class SearchPrinter {
         return Arrays.asList(timestampsText.split(" "));
     }
 
-    private List<Integer> getTranscriptDelimiterIndices(String transcript) {
-        List<Integer> indices = IntStream.range(0, transcript.length()).boxed()
-                .filter(i -> transcript.charAt(i) == TRANSCRIPT_DELIMITER)
-                .collect(Collectors.toList());
-        indices.add(0, 0);
-        return indices;
+    private List<String> getWordList(String transcript) {
+        return new LinkedList<>(Arrays.asList(transcript.split(" ")));
     }
 
-    private TreeMap<Integer, Integer> makeIndexToWordNumberMap() {
-        List<Integer> delimiterIndices = getDelimiterIndices(printable.transcript);
-        TreeMap<Integer, Integer> wordNumberMap = new TreeMap<>();
-
-        IntStream.range(0, delimiterIndices.size()).boxed()
-                .forEach(i -> {
-                    wordNumberMap.put(delimiterIndices.get(i), i);
-                });
-
-        return wordNumberMap;
-    }
-
-    private List<Integer> getDelimiterIndices(String string) {
-        List<Integer> indices = IntStream.range(0, string.length())
-                .boxed()
-                .filter(i -> string.charAt(i) == TRANSCRIPT_DELIMITER)
-                .collect(Collectors.toList());
-        indices.add(0, 0);
-        return indices;
-    }
-
-    public void print() {
-        printFilename();
-        printMatches();
-    }
-
-    private void printFilename() {
-        System.out.println();
-        System.out.println(ANSI_GREEN + printable.filename + ANSI_RESET);
-    }
-
-    private void printMatches() {
-//        List<String> searchResults = makeSearchResults();
-//        searchResults.stream().forEach(System.out::println);
-        // TODO:
-// For loop, that does each of the four necessary things individually
-// (preprocessing occurs before for loop to create maps)
-// -get the words before
-// -get the words after
-// -highlight the match
-// -combine the timestamp into the string
-        this.indexToWordNumberMap = makeIndexToWordNumberMap();
-        this.transcriptTimestampMap = getTranscriptTimestampMap();
-
-        for (IntegerPair matchPair : printable.matchIndices) {
-            String timestamp = getTimestamp(matchPair);
-            String wordsBefore = getWordsBefore(matchPair); // words before the first word in which the match is contained
-            String match = getMatch(matchPair); // all words across which the match spans, with the match highlighted
-            String wordsAfter = getWordsAfter(matchPair); // words after the last word in which the match is contained
-            
-            System.out.println(timestamp + " " + wordsBefore + " " + match + " " + wordsAfter);
-        }
-    }
-
-    public String getTimestamp(IntegerPair matchPair) {
+    public String getTimestamp(IntegerPair matchPair, TreeMap<Integer, String> transcriptTimestampMap) {
         int index = transcriptTimestampMap.floorKey(matchPair.start);
 
         for (int i = 0; i < printArguments.wordsBeforeMatch; ++i) {
@@ -119,6 +113,34 @@ public class SearchPrinter {
         return ANSI_BLUE + "[" + transcriptTimestampMap.get(index) + "]" + ANSI_RESET;
     }
 
+    private String getWordsBefore(IntegerPair matchPair, TreeMap<Integer, Integer> indexToWordNumberMap, List<String> wordList) {
+        int matchWordIndex = getWordNumberForIndex(matchPair.start, indexToWordNumberMap);
+        int start = matchWordIndex - printArguments.wordsBeforeMatch;
+        int end = matchWordIndex - 1;
+
+        if (start < 0 && end >= 0) {
+            return buildStringFromList(new IntegerPair(0, end), wordList);
+        } else if (start < 0 || start > end) {
+            return "";
+        } else {
+            return buildStringFromList(new IntegerPair(start, end), wordList);
+        }
+    }
+
+    private int getWordNumberForIndex(int index, TreeMap<Integer, Integer> indexToWordNumberMap) {
+        int prevDelimiterIndex = getPreviousDelimiterIndex(index, printable.transcript);
+        int key = indexToWordNumberMap.floorKey(prevDelimiterIndex);
+        return indexToWordNumberMap.get(key);
+    }
+
+    String buildStringFromList(IntegerPair indexRangeInclusive, List<String> wordList) {
+        String output = "";
+        for (int i = indexRangeInclusive.start; i <= indexRangeInclusive.end; ++i) {
+            output += wordList.get(i) + " ";
+        }
+        return output.substring(0, output.length() - 1); // Trim the final space character from the string.
+    }
+
     private String getMatch(IntegerPair matchPair) {
         // Get the indexes in the transcript string across which the match extends
         int matchWordsStart = getWordStartFromIndex(matchPair.start, printable.transcript);
@@ -129,17 +151,6 @@ public class SearchPrinter {
 
         // Highlight the match in the substring
         return highlightMatch(matchPair, allMatchWords, matchWordsStart);
-    }
-
-    private String highlightMatch(IntegerPair matchPair, String allMatchWords, int matchWordsStart) {
-        int start = matchPair.start - matchWordsStart;
-        int end = matchPair.end - matchWordsStart;
-
-        return allMatchWords.substring(0, start)
-                + ANSI_RED
-                + allMatchWords.substring(start, end)
-                + ANSI_RESET
-                + allMatchWords.substring(end);
     }
 
     private int getWordStartFromIndex(int index, String transcript) {
@@ -174,35 +185,28 @@ public class SearchPrinter {
         }
     }
 
-    private String getWordsBefore(IntegerPair matchPair) {
-        int matchWordIndex = getWordNumberForIndex(matchPair.start, indexToWordNumberMap);
-        int start = Math.max(0, matchWordIndex - printArguments.wordsBeforeMatch);
-        int end = Math.max(0, matchWordIndex - 1);
-        return buildStringFromList(new IntegerPair(start, end), getWordList(printable.transcript));
+    private String highlightMatch(IntegerPair matchPair, String allMatchWords, int matchWordsStart) {
+        int start = matchPair.start - matchWordsStart;
+        int end = matchPair.end - matchWordsStart;
+
+        return allMatchWords.substring(0, start)
+                + ANSI_RED
+                + allMatchWords.substring(start, end)
+                + ANSI_RESET
+                + allMatchWords.substring(end);
     }
 
-    private String getWordsAfter(IntegerPair matchPair) {
+    private String getWordsAfter(IntegerPair matchPair, TreeMap<Integer, Integer> indexToWordNumberMap, List<String> wordList) {
         int matchWordIndex = getWordNumberForIndex(matchPair.end, indexToWordNumberMap);
-        int start = Math.min(printable.transcript.length() - 1, matchWordIndex + 1);
-        int end = Math.min(printable.transcript.length() - 1, matchWordIndex + printArguments.wordsAfterMatch);
-        return buildStringFromList(new IntegerPair(start, end), getWordList(printable.transcript));
-    }
+        int start = matchWordIndex + 1;
+        int end = matchWordIndex + printArguments.wordsAfterMatch;
 
-    String buildStringFromList(IntegerPair indexRangeInclusive, List<String> wordList) {
-        String output = "";
-        for (int i = indexRangeInclusive.start; i <= indexRangeInclusive.end; ++i) {
-            output += wordList.get(i) + " ";
+        if (start < wordList.size() && end >= wordList.size()) {
+            return buildStringFromList(new IntegerPair(start, wordList.size() - 1), wordList);
+        } else if (start >= wordList.size() || start > end) {
+            return "";
+        } else {
+            return buildStringFromList(new IntegerPair(start, end), wordList);
         }
-        return output.length() == 0 ? output : output.substring(0, output.length() - 1);
-    }
-
-    private int getWordNumberForIndex(int index, TreeMap<Integer, Integer> indexToWordNumberMap) {
-        int prevDelimiterIndex = getPreviousDelimiterIndex(index, printable.transcript);
-        int key = indexToWordNumberMap.floorKey(prevDelimiterIndex);
-        return indexToWordNumberMap.get(key);
-    }
-
-    private List<String> getWordList(String transcript) {
-        return new LinkedList<>(Arrays.asList(transcript.split(" ")));
     }
 }
