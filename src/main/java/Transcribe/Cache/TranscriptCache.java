@@ -4,6 +4,7 @@ import Search.Searchable;
 import Transcribe.Cache.CacheInfo;
 import Transcribe.Cache.CacheKey;
 import Transcribe.VoskAdapter;
+import Transcribe.VoskConverter;
 import Transcribe.VoskProxy;
 import org.apache.commons.io.FileUtils;
 
@@ -15,23 +16,43 @@ import java.io.IOException;
 public class TranscriptCache {
     private VoskAdapter speechToText;
     private String filename;
-    private VoskProxy voskProxy;
+    public VoskProxy voskProxy;
     private String modelDirectory;
+    private CacheInfo cacheInfo;
+    private boolean needsTranscribing;
 
-    public TranscriptCache(String filename, VoskAdapter speechToText, String modelDirectory) {
+    public TranscriptCache(String filename, String modelDirectory) {
         this.filename = filename;
         this.speechToText = speechToText;
         this.modelDirectory = modelDirectory;
         this.voskProxy = new VoskProxy();
+        this.cacheInfo = getCacheInfo(new CacheKey(filename, modelDirectory));
+        this.needsTranscribing = !cachedFilesExist(cacheInfo);
+    }
+
+    public boolean needsTranscribing() {
+        return needsTranscribing;
+    }
+
+    public String getFilename() {
+        return cacheInfo.inputFilename;
+    }
+
+    public long getFileDurationMillis() {
+        return VoskConverter.getAudioDuration(cacheInfo.inputFilename);
     }
 
     public Searchable getSearchable() {
-        CacheInfo cacheInfo = getCacheInfo(new CacheKey(filename, speechToText, modelDirectory));
 
-        if (!cachedFilesExist(cacheInfo)) {
+        if (needsTranscribing) {
             voskProxy.getSearchableTranscript(cacheInfo);
         }
+
         return new Searchable(cacheInfo);
+    }
+
+    public boolean cachedFilesExist() {
+        return cachedFilesExist(cacheInfo);
     }
 
     private boolean cachedFilesExist(CacheInfo cacheInfo) {

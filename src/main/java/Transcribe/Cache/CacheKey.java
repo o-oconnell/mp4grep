@@ -19,15 +19,13 @@ public class CacheKey {
 
     public String filename;
     public String lastModified;
-    public VoskAdapter speechToText;
     public String modelDirectory;
     private String hash;
 
-    public CacheKey(String filename, VoskAdapter speechToText, String modelDirectory) {
+    public CacheKey(String filename, String modelDirectory) {
         createCacheDirectory();
         this.filename = filename;
         this.lastModified = getLastModified(filename);
-        this.speechToText = speechToText;
         this.hash = computeHash();
         this.modelDirectory = modelDirectory;
     }

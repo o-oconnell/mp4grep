@@ -25,6 +25,7 @@ public class VoskAdapter {
     private static final int SAMPLING_RATE = 16000;
     private static final String SPLIT_STRING_ON_PERIOD_REGEX = "\\.";
     private static final int AUDIO_BYTE_ARRAY_SIZE = 4086;
+    public volatile long progress;
 
     public VoskAdapter() {
         voskSetup();
@@ -138,9 +139,17 @@ public class VoskAdapter {
         JsonArray allTimestampedWords = getAllWords(jsonParseObject);
         for (JsonElement wordInfo : allTimestampedWords) {
             String startTime = getStringAttribute("start", wordInfo);
+            String endTime = getStringAttribute("end", wordInfo);
+
+            writeProgress(endTime);
+
             String word = getStringAttribute("word", wordInfo);
             writeTimestampAndWordToFiles(getTimestampFormat(startTime), word, cacheInfo);
         }
+    }
+
+    private void writeProgress(String resultEndTime) {
+        progress = (long) Double.parseDouble(resultEndTime) * 1000;
     }
 
     private JsonObject getJsonObject(String input) {
