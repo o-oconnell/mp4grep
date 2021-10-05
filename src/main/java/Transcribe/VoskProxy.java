@@ -4,13 +4,14 @@ import Search.Searchable;
 import Transcribe.Cache.CacheInfo;
 
 public class VoskProxy {
+    public VoskAdapter voskAdapter;
 
-    public VoskProxy() {}
+    public VoskProxy() {
+        this.voskAdapter = new VoskAdapter();
+    }
 
     public Searchable getSearchableTranscript(CacheInfo cacheInfo) {
-        VoskAdapter voskAdapter = new VoskAdapter();
         voskAdapter.transcribeAudio(cacheInfo);
         return new Searchable(cacheInfo);
     }
-
 }

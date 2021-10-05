@@ -44,7 +44,7 @@ public class VoskConverter {
 
     private static String makeTargetFilename(String file) {
         String result = getFilenameWithoutExtension(file) + "." + VOSK_AUDIO_FILE_FORMAT;
-        return CONVERTED_AUDIO_FILE_DIRECTORY + "/" + result;
+        return CONVERTED_AUDIO_FILE_DIRECTORY + result;
     }
 
     private static String getFilenameWithoutExtension(String file) {
@@ -100,5 +100,10 @@ public class VoskConverter {
             e.printStackTrace();
         }
         return info.getDuration();
+    }
+
+    public static String getConvertedFilename(String file) {
+        String result = getFilenameWithoutExtension(file) + "." + VOSK_AUDIO_FILE_FORMAT;
+        return CONVERTED_AUDIO_FILE_DIRECTORY + result;
     }
 }
