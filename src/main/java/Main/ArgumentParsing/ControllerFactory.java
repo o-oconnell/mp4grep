@@ -52,10 +52,10 @@ public class ControllerFactory {
     private boolean argsContains(String[] values, String[] args) {
         List<String> argsList = getList(args);
         for (String value : values) {
-            if (!argsList.contains(value))
-                return false;
+            if (argsList.contains(value))
+                return true;
         }
-        return true;
+        return false;
     }
 
     private List<String> getList(String[] args) {
