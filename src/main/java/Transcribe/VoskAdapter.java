@@ -1,6 +1,7 @@
 package Transcribe;
 
 import Transcribe.Cache.CacheInfo;
+import com.google.common.cache.Cache;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalTime;
 import java.util.concurrent.TimeUnit;
 
 public class VoskAdapter {
@@ -137,10 +139,7 @@ public class VoskAdapter {
         for (JsonElement wordInfo : allTimestampedWords) {
             String startTime = getStringAttribute("start", wordInfo);
             String word = getStringAttribute("word", wordInfo);
-            writeToFile(word, cacheInfo.transcriptFilename);
-            writeToFile(getTimestampFormat(startTime), cacheInfo.timestampFilename);
-            // TODO: write to both files as an atomic operation
-            // Write to both in the same function using a single try-catch block.
+            writeTimestampAndWordToFiles(getTimestampFormat(startTime), word, cacheInfo);
         }
     }
 
@@ -156,12 +155,14 @@ public class VoskAdapter {
         return wordInfo.getAsJsonObject().get(string).getAsString();
     }
 
-    private void writeToFile(String word, String filename) {
+    private void writeTimestampAndWordToFiles(String timestamp, String word, CacheInfo cacheInfo) {
         try {
-            Path outputFile = Path.of(filename);
-            Files.writeString(outputFile, word + '\n', StandardOpenOption.APPEND);
+            Path timestampFile = Path.of(cacheInfo.timestampFilename);
+            Path transcriptFile = Path.of(cacheInfo.transcriptFilename);
+            Files.writeString(timestampFile, timestamp + '\n', StandardOpenOption.APPEND);
+            Files.writeString(transcriptFile, word + '\n', StandardOpenOption.APPEND);
         } catch (IOException e) {
-            System.out.println("Error printing sound translation to temporary file");
+            System.out.println("Error printing word and timestamp to cache files.");
             e.printStackTrace();
         }
     }
@@ -170,10 +171,20 @@ public class VoskAdapter {
         // edge case since a long cannot consist only of zeros
         if (containsOnlyZeros(removeFraction(seconds))) {
             return "0" + ":" + "00";
-        } else {
-            Long secondsNum = Long.valueOf(removeFraction(seconds));
-            return getHours(secondsNum) + getMinutes(secondsNum) + getSeconds(secondsNum);
         }
+        Long secondsNum = Long.valueOf(removeFraction(seconds));
+        String hours = getHours(secondsNum);
+
+        if (hours.length() > 0) {
+            return hours + getMinutesZeroPrefixed(secondsNum) + getSeconds(secondsNum);
+        }
+        return getMinutes(secondsNum) + getSeconds(secondsNum);
+    }
+
+    private boolean containsOnlyZeros(String input) {
+        return input.chars()
+                .asLongStream()
+                .allMatch(ch -> ch == '.' || ch == '0' || ch == ' ');
     }
 
     String removeFraction(String string) {
@@ -186,23 +197,24 @@ public class VoskAdapter {
         }
     }
 
-    private boolean containsOnlyZeros(String input) {
-        return input.chars()
-                .asLongStream()
-                .allMatch(ch -> ch == '.' || ch == '0' || ch == ' ');
-    }
-
     private String getHours(long secondsNum) {
         long hours =  TimeUnit.SECONDS.toHours(secondsNum);
         if (hours > 0) {
             return hours + ":";
-        } else {
-            return "";
         }
+        return "";
     }
 
     private String getMinutes(long secondsNum) {
         return (TimeUnit.SECONDS.toMinutes(secondsNum) - TimeUnit.SECONDS.toHours(secondsNum)* 60) + ":";
+    }
+
+    private String getMinutesZeroPrefixed(long secondsNum) {
+        long minutes = (TimeUnit.SECONDS.toMinutes(secondsNum) - TimeUnit.SECONDS.toHours(secondsNum)* 60);
+        if (minutes < 10) {
+            return "0" + minutes;
+        }
+        return minutes + ":";
     }
 
     private String getSeconds(long secondsNum) {
