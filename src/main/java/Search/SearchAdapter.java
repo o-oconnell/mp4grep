@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SearchAdapter {
-
     private SearchArguments searchArguments;
     public SearchAdapter(SearchArguments searchArguments) {
         this.searchArguments = searchArguments;

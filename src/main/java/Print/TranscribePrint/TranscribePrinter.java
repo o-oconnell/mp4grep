@@ -4,9 +4,11 @@ import Arguments.RawPrintArguments;
 import Globals.GlobalColors;
 import Search.Searchable;
 import Search.Searcher;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -14,6 +16,7 @@ import java.util.*;
 
 public class TranscribePrinter {
     private static String TRANSCRIBED_FILE_EXTENSION = "_transcribed.txt";
+    private static String FILE_UTILS_DEFAULT_CHARSET = null;
     private static int ERROR_EXIT_CODE = 1;
     private RawPrintArguments arguments;
 
@@ -23,8 +26,8 @@ public class TranscribePrinter {
 
     public void print(Searchable searchable) {
         List<String> printList = new ArrayList<>();
-        Deque<String> words = new LinkedList<>(Arrays.asList(Searcher.getContentsWithoutNewlines(searchable.transcriptFile).split(" ")));
-        Deque<String> timestamps = new LinkedList<>(Arrays.asList(Searcher.getContentsWithoutNewlines(searchable.timestampFile).split(" ")));
+        Deque<String> words = new LinkedList<>(Arrays.asList(getFileToString(searchable.transcriptFile).split(" ")));
+        Deque<String> timestamps = new LinkedList<>(Arrays.asList(getFileToString(searchable.timestampFile).split(" ")));
 
         while (!words.isEmpty()) {
             String current = "[" + timestamps.getFirst() + "]";
@@ -94,5 +97,20 @@ public class TranscribePrinter {
             System.out.println("Error creating transcript file.");
             e.printStackTrace();
         }
+    }
+
+    private static String getFileToString(File file) {
+        String result = null;
+        try {
+            result = FileUtils.readFileToString(file, FILE_UTILS_DEFAULT_CHARSET);
+        } catch (IOException e) {
+            System.out.println("Error reading transcription file to string.");
+            e.printStackTrace();
+        }
+        return stripNewlines(result);
+    }
+
+    private static String stripNewlines(String input) {
+        return input.replace("\n", " ").replace("\r", "");
     }
 }
