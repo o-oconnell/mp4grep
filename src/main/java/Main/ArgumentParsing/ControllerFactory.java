@@ -22,7 +22,7 @@ public class ControllerFactory {
                     .args(args)
                     .build();
         } else if (argsContains(TRANSCRIBE_ANY, args)) {
-            System.out.println(TRANSCRIBE +" or " + TRANSCRIBE_TO_FILES + " detected. Transcribing without search.");
+            System.out.println(TRANSCRIBE +" or " + TRANSCRIBE_TO_FILES + " option used. Transcribing without search.");
             parser = TranscribeParser.builder()
                     .args(args)
                     .build();

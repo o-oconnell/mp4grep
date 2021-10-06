@@ -4,28 +4,27 @@ import Arguments.TranscriptArguments;
 import Search.Searchable;
 import Transcribe.Cache.TranscriptCache;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class TranscriptAdapter {
-    private static int MIN_PROGRESS_BAR_LENGTH = 10;
-    private static String PERCENT_COMPLETION_FORMAT = "Transcribing audio files: %.2f% %s\r"; // [percentage] [progress bar]
+import static Globals.GlobalColors.*;
 
-    private List<String> files;
-    private VoskAdapter speechToText;
-    private String modelDirectory;
+public class TranscriptAdapter {
+    private static final int PROGRESS_BAR_CONTENT_WIDTH = 44;
+    private static final String PRINT_STRING_FORMAT = "Transcribing audio files: %.2f%% %s\r";
+
+    private final List<String> files;
+    private final String modelDirectory;
+
     private List<Searchable> searchables;
     private AtomicBoolean transcriptionInProgress;
     private long totalTranscribeDurationMillis;
 
-
     public TranscriptAdapter(TranscriptArguments transcriptArguments) {
         this.files = transcriptArguments.files;
-        this.speechToText = transcriptArguments.speechToText;
         this.modelDirectory = transcriptArguments.modelDirectory;
     }
 
@@ -102,53 +101,35 @@ public class TranscriptAdapter {
             }
 
             printProgress(totalTranscribeDurationMillis);
-            System.out.println(""); // Go to the next line so this line is not overwritten by the printing of the grep output.
         });
     }
 
     private void printProgress(double progressSumMillis) {
         double percent = -1;
         if (totalTranscribeDurationMillis == 0)
-            percent = 100;
+            percent = 100; // In this case, we do not have any files to transcribe.
         else
             percent = progressSumMillis / totalTranscribeDurationMillis * 100;
 
-        String percentageString = String.format("Transcribing audio files: %.2f%%\r", percent);
+        String percentageString = String.format(PRINT_STRING_FORMAT, percent, getProgressBar(percent));
         System.out.print(percentageString);
     }
 
-    private String getProgressBar(double percentNum) {
-        String printStr = "Transcribing audio files: 100.0% \r";
+    private String getProgressBar(double percent) {
+        int truncatedPercent = (int) percent;
 
-        int terminalWidth = getTerminalWidth();
-        int progressBarWidth = terminalWidth - printStr.length();
+        String progress = "|" + ANSI_YELLOW;
+        for (int i = 0; i < PROGRESS_BAR_CONTENT_WIDTH; i++) {
+            int currentPercent = (int) (100 * (double) i / PROGRESS_BAR_CONTENT_WIDTH);
 
-        if (progressBarWidth <= 10) {
-            return "";
-        }
-
-        int percent = (int) percentNum;
-
-        String progress = "";
-        for (int i = 0; i < MIN_PROGRESS_BAR_LENGTH; i++) {
-            if (100 * (i / progressBarWidth) <= percent)
+            if (currentPercent <= truncatedPercent)
                 progress += "#";
             else
                 progress += " ";
         }
+        progress += ANSI_RESET + "|";
 
         return progress;
-    }
-
-    private int getTerminalWidth() {
-        int terminalWidth = -1;
-        try {
-            terminalWidth = org.jline.terminal.TerminalBuilder.terminal().getWidth();
-        } catch (IOException e) {
-            System.out.println("Error reading terminal width");
-            e.printStackTrace();
-        }
-        return terminalWidth;
     }
 
     private Thread getTranscription(List<TranscriptCache> caches) {
