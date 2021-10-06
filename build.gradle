@@ -76,12 +76,5 @@ jreleaser {
         description = "mp4grep"
         extraProperties.put('inceptionYear', '2021')
     }
-
-    release {
-        github {
-            owner = 'o-oconnell'
-            overwrite = true
-            token = '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'
-        }
-    }
+    
 }
