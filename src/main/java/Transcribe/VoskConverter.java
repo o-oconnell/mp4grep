@@ -43,13 +43,15 @@ public class VoskConverter {
     }
 
     private static String makeTargetFilename(String file) {
-        String result = getFilenameWithoutExtension(file) + "." + VOSK_AUDIO_FILE_FORMAT;
-        return CONVERTED_AUDIO_FILE_DIRECTORY + result;
+        String result = getFilenameWithoutExtensionOrDirectory(file) + "." + VOSK_AUDIO_FILE_FORMAT;
+        return CONVERTED_AUDIO_FILE_DIRECTORY + "/" + result;
     }
 
-    private static String getFilenameWithoutExtension(String file) {
+    private static String getFilenameWithoutExtensionOrDirectory(String file) {
         int extensionStartIndex = file.lastIndexOf(".") + 1;
-        return file.substring(0, extensionStartIndex - 1);
+        String filenameWithoutExtension = file.substring(0, extensionStartIndex - 1);
+        File fileWithoutExtension = new File(filenameWithoutExtension);
+        return fileWithoutExtension.getName();
     }
 
     private static void convertAndWriteToTargetFile(String sourceFilename, String targetFilename) {
@@ -103,7 +105,7 @@ public class VoskConverter {
     }
 
     public static String getConvertedFilename(String file) {
-        String result = getFilenameWithoutExtension(file) + "." + VOSK_AUDIO_FILE_FORMAT;
+        String result = getFilenameWithoutExtensionOrDirectory(file) + "." + VOSK_AUDIO_FILE_FORMAT;
         return CONVERTED_AUDIO_FILE_DIRECTORY + result;
     }
 }

@@ -46,7 +46,7 @@ public class Searcher {
 
     private static List<IntegerPair> findMatches(String transcript, String search) {
         List<IntegerPair> result = new LinkedList<>();
-        Pattern pattern = Pattern.compile(search);
+        Pattern pattern = Pattern.compile(search.toLowerCase(Locale.ROOT)); // Ignore case, since transcription always occurs to lower case.
         Matcher matcher = pattern.matcher(transcript);
 
         while (matcher.find()) {

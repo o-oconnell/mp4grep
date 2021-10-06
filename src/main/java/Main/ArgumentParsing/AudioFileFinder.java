@@ -30,7 +30,7 @@ public class AudioFileFinder {
             } else if (isValidAudioFile(input)) {
                 files.add(input);
             } else {
-                System.out.println(GlobalColors.ANSI_RED + "Location \"" + input + "\" not found." + GlobalColors.ANSI_RESET);
+                System.out.println(GlobalColors.ANSI_RED + "Location \"" + input + "\" not found or invalid audio file." + GlobalColors.ANSI_RESET);
             }
         }
         return files;

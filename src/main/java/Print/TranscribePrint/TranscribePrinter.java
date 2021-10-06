@@ -111,6 +111,8 @@ public class TranscribePrinter {
     }
 
     private static String stripNewlines(String input) {
-        return input.replace("\n", " ").replace("\r", "");
+        return input
+                .replace("\n", " ")
+                .replace("\r", "");
     }
 }

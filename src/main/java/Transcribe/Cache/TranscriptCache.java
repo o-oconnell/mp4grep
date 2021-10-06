@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 
 public class TranscriptCache {
-    private VoskAdapter speechToText;
     private String filename;
     public VoskProxy voskProxy;
     private String modelDirectory;
@@ -23,7 +22,6 @@ public class TranscriptCache {
 
     public TranscriptCache(String filename, String modelDirectory) {
         this.filename = filename;
-        this.speechToText = speechToText;
         this.modelDirectory = modelDirectory;
         this.voskProxy = new VoskProxy();
         this.cacheInfo = getCacheInfo(new CacheKey(filename, modelDirectory));
@@ -49,10 +47,6 @@ public class TranscriptCache {
         }
 
         return new Searchable(cacheInfo);
-    }
-
-    public boolean cachedFilesExist() {
-        return cachedFilesExist(cacheInfo);
     }
 
     private boolean cachedFilesExist(CacheInfo cacheInfo) {

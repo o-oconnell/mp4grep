@@ -32,10 +32,6 @@ public class SearchParser implements Parser {
         CommandLine arguments = makeCommandLine(searchWorkflowArgs);
         CommandLine.ParseResult result = arguments.parseArgs(args);
         ParseErrorHandler.handleErrors(result);
-
-        if (arguments.isUsageHelpRequested()) {
-            ParseErrorHandler.printUsageHelp();
-        }
     }
 
     private CommandLine makeCommandLine(SearchWorkflowArgs args) {
