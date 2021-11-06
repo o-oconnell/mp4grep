@@ -16,6 +16,7 @@ import static Globals.GlobalLocations.CACHE_DIRECTORY;
 public class CacheKey {
     private static final String TRANSCRIPT_FILE_EXTENSION = ".transcript";
     private static final String TIMESTAMP_FILE_EXTENSION = ".timestamp";
+    private static final int MINIMUM_HASH_BITS = 64;
 
     public String filename;
     public String lastModified;
@@ -47,7 +48,7 @@ public class CacheKey {
     private String computeHash() {
         byte[] fileData = getFileData(filename);
 
-        HashFunction hashFunction = Hashing.sha256();
+        HashFunction hashFunction = Hashing.goodFastHash(MINIMUM_HASH_BITS);
         HashCode hashCode = hashFunction.newHasher()
                 .putBytes(fileData)
                 .hash();

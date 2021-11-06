@@ -42,8 +42,9 @@ public class AudioFileFinder {
 
         List<String> result = new LinkedList<>();
         for (File file : allFiles) {
-            if (isAudioFile(file.getName()))
-                result.add(file.getAbsolutePath());
+            if (isAudioFile(file.getName())) {
+                result.add(file.getPath());
+            }
         }
         return result;
     }

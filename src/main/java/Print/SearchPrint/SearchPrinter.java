@@ -20,13 +20,7 @@ public class SearchPrinter {
     @NonNull private Printable printable;
 
     public void print() {
-        printFilename();
         printMatches();
-    }
-
-    private void printFilename() {
-        System.out.println();
-        System.out.println(ANSI_GREEN + printable.filename + ANSI_RESET);
     }
 
     private void printMatches() {
@@ -45,7 +39,7 @@ public class SearchPrinter {
     }
 
     private void printResult(String timestamp, String wordsBefore, String match, String wordsAfter) {
-        String result = timestamp + " ";
+        String result = ANSI_GREEN + printable.filename + ANSI_RESET + ":" + timestamp + ":";
         if (wordsBefore.length() > 0) {
             result += wordsBefore + " ";
         }
