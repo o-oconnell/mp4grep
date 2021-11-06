@@ -36,18 +36,7 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 2. Download mp4grep and unzip it in the location that you want to install it:
 
 3. Add mp4grep to your PATH:
-
-
-### User guide
-Usage: mp4grep [options] [search string] [files/directories]
-
---before/--after           Number of words to print before/after a match (default 5)
-
---model [model directory]  Vosk-compatible speech recognition model (default "model")
-
-[search string]            Regex-optional query
-
-[files/directories]        Space-separated list of files/directories to search
+4. Use mp4grep to search! `mp4grep "the birch canoe" myfile.mp4 my_directory_containing_audio_files`
 
 ### Pull requests
 Pull requests are welcome and appreciated! Please open a pull request if you have an bug, code smell, or anything else to fix!
