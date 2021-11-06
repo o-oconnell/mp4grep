@@ -34,10 +34,13 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 1. Download the latest JRE, if you don't already have JRE 11+ installed:
 `sudo apt install openjdk-17-jre`
 
-2. Download mp4grep and unzip it in the location that you want to install it:
+2. [Download](https://github.com/o-oconnell/mp4grep/releases) mp4grep and unzip it in the location that you want to install it: `unzip mp4grep-v0.1.0.zip`
 
-3. Add mp4grep to your PATH:
-4. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
+3. Add mp4grep to your PATH, and set its environment variables: 
+`cd mp4grep-v0.1.0`
+`source install.sh`
+
+5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
 ### Pull requests
 Pull requests are welcome and appreciated! Please open a pull request if you have an bug, code smell, or anything else to fix!
