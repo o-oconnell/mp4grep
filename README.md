@@ -33,3 +33,6 @@ transcription accuracy for an English accent that a neural network does not exis
 ### Installation
 
 ### User guide
+
+### Pull requests
+Pull requests are welcome and appreciated! Please open a pull request if you have an bug, code smell, or anything else to fix!
