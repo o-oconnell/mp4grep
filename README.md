@@ -37,6 +37,7 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 2. [Download](https://github.com/o-oconnell/mp4grep/releases) mp4grep and unzip it in the location that you want to install it: `unzip mp4grep-v0.1.0.zip`
 
 3. Add mp4grep to your PATH, and set its environment variables: 
+
 `cd mp4grep-v0.1.0`
 
 `source install.sh`
