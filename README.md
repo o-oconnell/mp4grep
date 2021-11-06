@@ -23,10 +23,9 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 * Although transcription takes some time, mp4grep is multithreaded on separate inputs. You can transcribe multiple audio files more quickly if you transcribe them simultaneously. 
 
 ### Why should I not use mp4grep?
-* You aren't technically allowed to download a copy of the audio/video you want to search.
-* If you are using a language that is not supported well by a Vosk model, or you need high
-transcription accuracy for an English accent that a neural network does not exist for
+* You are using a language or dialect that a Vosk model does not exist for
 (mp4grep still finds keywords pretty well, so it could still be useful)
+* You aren't technically allowed to download a copy of the audio/video you want to search.
 * mp4grep doesn't work in your Linux environment (please open an issue!)
 * Transcription accuracy is too low (please raise an issue with [Vosk on Github](https://github.com/alphacep/vosk-api)!)
 
