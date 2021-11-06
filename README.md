@@ -17,13 +17,13 @@ dialects of English or other languages with accuracy, you will need to use a dif
 ### Why should I use mp4grep?
 * It allows you to search audio and video, instead of just text.
 * Some of the use cases provided by other search tools like pdfgrep can be served better with mp4grep:
-for example, instead of searching a textbook for an example problem, you can search a recording of your class (if your professor is alright with it).
+for example, instead of searching a textbook for an example problem, you can search a recording of your class (if your school allows it).
 * It caches transcription results, so if you transcribe a video once (which may take some time),
 searching that video again will be instantaneous. mp4grep hashes the contents of transcribed files, so you can move or rename the file and you will still be able to quickly search its contents.
 * Although transcription takes some time, mp4grep is multithreaded on separate inputs. You can transcribe multiple audio files more quickly if you transcribe them simultaneously. 
 
 ### Why should I not use mp4grep?
-* You are using a language or dialect that a Vosk model does not exist for
+* You are using a language or dialect that a Vosk model does not exist for.
 (mp4grep still finds keywords pretty well, so it could still be useful)
 * You aren't technically allowed to download a copy of the audio/video you want to search.
 * mp4grep doesn't work in your Linux environment (please open an issue!)
