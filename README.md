@@ -20,7 +20,7 @@ dialects of English or other languages with accuracy, you will need to use a dif
 for example, instead of searching a textbook for an example problem, you can search a recording of your class (if your professor is alright with it).
 * It caches transcription results, so if you transcribe a video once (which may take some time),
 searching that video again will be instantaneous. mp4grep hashes the contents of transcribed files, so you can move or rename the file and you will still be able to quickly search its contents.
-* Although transcription takes some time, mp4grep is multithreaded on separate inputs. 
+* Although transcription takes some time, mp4grep is multithreaded on separate inputs. You can transcribe multiple audio files more quickly if you transcribe them simultaneously. 
 
 ### Why should I not use mp4grep?
 * You aren't technically allowed to download a copy of the audio/video you want to search.
