@@ -45,4 +45,4 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
 ### Pull requests
-Pull requests are welcome and appreciated! Please open a pull request if you have an bug, code smell, or anything else to fix!
+Pull requests are welcome and appreciated! Please open a pull request if you have a bug, code smell, or anything else to fix!
