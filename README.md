@@ -30,6 +30,13 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 * Transcription accuracy is too low (please raise an issue with [Vosk on Github](https://github.com/alphacep/vosk-api)!)
 
 ### Installation
+1. Download the latest JRE, if you don't already have JRE 11+ installed:
+`sudo apt install openjdk-17-jre`
+
+2. Download mp4grep and unzip it in the location that you want to install it:
+
+3. Add mp4grep to your PATH:
+
 
 ### User guide
 
