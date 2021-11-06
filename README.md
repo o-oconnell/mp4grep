@@ -38,6 +38,7 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 
 3. Add mp4grep to your PATH, and set its environment variables: 
 `cd mp4grep-v0.1.0`
+
 `source install.sh`
 
 5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
