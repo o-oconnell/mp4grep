@@ -17,7 +17,7 @@ dialects of English or other languages with accuracy, you will need to use a dif
 
 ### Why should I use mp4grep?
 * It allows you to search audio and video, instead of just text.
-* Some of the use cases provided by other search tools like pdfgrep can be served better with mp4grep:
+* Some of the use cases provided by other search tools can be served better with mp4grep:
 for example, instead of searching a textbook for an example problem, you can search a recording of your class.
 * It caches transcription results, so if you transcribe a video once,
 searching that video again will be instantaneous. mp4grep hashes the contents of transcribed files, so you can move or rename the file and you will still be able to quickly search its contents.
