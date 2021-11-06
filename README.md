@@ -36,7 +36,7 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 2. Download mp4grep and unzip it in the location that you want to install it:
 
 3. Add mp4grep to your PATH:
-4. Use mp4grep to search! `mp4grep "the birch canoe" myfile.mp4 my_directory_containing_audio_files`
+4. Use mp4grep to search! `mp4grep "the birch canoe"|canoe|"the birch" myfile.mp4 my_directory_containing_audio_files`
 
 ### Pull requests
 Pull requests are welcome and appreciated! Please open a pull request if you have an bug, code smell, or anything else to fix!
