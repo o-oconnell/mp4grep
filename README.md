@@ -39,6 +39,11 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 
 
 ### User guide
+Usage: mp4grep [options] [search string] [files/directories]",
+--before/--after           Number of words to print before/after a match (default 5)",
+            "--model [model directory]  Vosk-compatible speech recognition model (default \"model\")",
+            "[search string]            Regex-optional query",
+            "[files/directories]        Space-separated list of files/directories to search"
 
 ### Pull requests
 Pull requests are welcome and appreciated! Please open a pull request if you have an bug, code smell, or anything else to fix!
