@@ -1,0 +1,4 @@
+
+bin/*
+test_files/*
+vosk/models/*
