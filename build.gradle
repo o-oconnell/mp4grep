@@ -4,13 +4,12 @@ plugins {
     id 'org.jreleaser' version '0.7.0'
 }
 
-group 'org.example'
-version '1.0-SNAPSHOT'
+group 'org.o-oconnell'
+version '0.1.0-alpha'
 
 repositories {
     mavenCentral()
     mavenLocal()
-
 
     maven {
         url 'https://alphacephei.com/maven/'
@@ -69,11 +68,18 @@ application {
     mainClass = 'Main.MP4grep'
 }
 
+applicationDistribution.from("setup") {
+    include "install.sh"
+}
+
+applicationDistribution.from("setup/model") {
+    into "model"
+}
+
 jreleaser {
     project {
-        website = 'https://acme.com/app'
-        authors = ['Duke']
-        license = 'Apache-2.0'
+        authors = ['Oisin O\'Connell']
+        license = 'GPL-3.0'
         description = "mp4grep"
         extraProperties.put('inceptionYear', '2021')
     }
@@ -82,7 +88,6 @@ jreleaser {
         github {
             owner = 'o-oconnell'
             overwrite = true
-            token = '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'
         }
     }
 }

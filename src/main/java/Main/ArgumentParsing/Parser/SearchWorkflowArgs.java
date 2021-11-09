@@ -16,7 +16,7 @@ public class SearchWorkflowArgs {
     public int wordsToPrintAfterMatch = 5;
 
     @Option(required = true, names = {"--model"}, description = "Language model directory", defaultValue = "model", paramLabel = "<model>")
-    public String model = "model";
+    public String model = System.getenv("MP4GREP_MODEL");
 
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Display a help message")
     private boolean helpRequested = false;
