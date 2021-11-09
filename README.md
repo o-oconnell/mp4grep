@@ -46,7 +46,7 @@ MP4GREP_CACHE: transcription cache.
 
 MP4GREP_CONVERTED: converted audio files - Vosk requires single-channel, 16 KHz sampling rate audio input.
 
-MP4GREP_MODEL: machine learning model directory.
+MP4GREP_MODEL: transcription model directory.
 
 5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
