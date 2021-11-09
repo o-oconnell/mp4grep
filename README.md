@@ -51,4 +51,4 @@ MP4GREP_MODEL: transcription model directory.
 5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
 ### Pull requests
-Pull requests are welcome and appreciated! Please open a pull request if you have a bug, code smell, or anything else to fix!
+Pull requests are welcome and appreciated. Please open a pull request if you have a bug or code smell to fix.
