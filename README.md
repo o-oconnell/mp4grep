@@ -40,6 +40,11 @@ searching that video again will be instantaneous. mp4grep hashes the contents of
 
 `source install.sh`
 
+This script adds mp4grep to your path and sets three environment variables:
+MP4GREP_CACHE: transcription cache.
+MP4GREP_CONVERTED: converted audio files - Vosk requires single-channel, 16 KHz sampling rate audio input.
+MP4GREP_MODEL: machine learning model directory.
+
 5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
 ### Pull requests
