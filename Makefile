@@ -3,15 +3,16 @@
 include config.mk
 
 # output dir for executable
+EXECUTABLE_NAME =perg
 BIN_DIR=./bin
 
 # list all source files here
-SRC = perg.cc
+SRC = perg.cc transcribe.cc
 
 OBJ = ${SRC:.c=.o}
 
 ## Rules
-all: perg
+all: $(EXECUTABLE_NAME)
 
 # show environment vars
 environment:
@@ -29,7 +30,7 @@ ${OBJ}: config.mk environment
 %.o: %.c
 
 # link all objects, produce final executable and output to BIN_DIR
-perg: ${OBJ} bin_dir
+${EXECUTABLE_NAME}: ${OBJ} bin_dir
 	${CC} -o $(BIN_DIR)/$@ ${OBJ} $(IDIRS) ${LDFLAGS} -Wl,-rpath ${LDDIRS} ${LDLIBS}
 
 # make binary output directory
@@ -46,7 +47,7 @@ clean:
 run: all
 	LD_LIBRARY_PATH=${LDDIRS}; \
 	export LD_LIBRARY_PATH; \
-	${BIN_DIR}/grep_star;
+	${BIN_DIR}/$(EXECUTABLE_NAME);
 
 # put everything in distributable archive
 dist:
