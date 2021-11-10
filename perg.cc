@@ -5,7 +5,7 @@
 using namespace std;
 
 // hardcoded values, TODO: remove, make configurable or input
-const char* INPUT_WAV = "./test_files/OSR_us_000_0061_8k.wav";
+const char* INPUT_WAV = "./test_files/python_example_test.wav";
 const char* VOSK_MODEL = "./models/vosk-model-small-en-us-0.15";
 
 int main(int argc, const char** argv) {

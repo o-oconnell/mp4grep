@@ -10,12 +10,12 @@
 void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files);
 
 /* Vosk models are trained on this sampling rate, so it's a hard requirement
-that audio inputs have this same rate. */
+that audio inputs have exactly this same rate. */
 const float VOSK_SAMPLING_RATE = 16000.0;
 
 int do_transcription(const char* model_path, const char* audio_path, transcript_location cache_paths) {
     /* CONSTANT CONFIGS FOR VOSK */
-    const int VOSK_AUDIO_BUFFER_SIZE = 8192;
+    const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 
     /* OPEN TRANSCRIPTION STREAMS */
     const char* CACHE_FILES_OPEN_MODE = "w";
@@ -51,11 +51,16 @@ int do_transcription(const char* model_path, const char* audio_path, transcript_
         /* FEED BUFFER TO VOSK */
         is_final = vosk_recognizer_accept_waveform(recognizer, audio_buffer, bytes_read);
 
-        if (is_final) { // only process final results, ignoring in progress transcriptions
-            vosk_json = vosk_recognizer_final_result(recognizer);
+        /* WRITE TRANSCRIPTION RESULTS TO CACHE */
+        if (!is_final) {
+            vosk_json = vosk_recognizer_partial_result(recognizer);
             write_vosk_json_to_files(vosk_json, &cache_streams);
         }
     }
+
+    /* WRITE FINAL TRANSCRIPTION RESULT */
+    vosk_json = vosk_recognizer_final_result(recognizer);
+    write_vosk_json_to_files(vosk_json, &cache_streams);
 
     /* CLEANUP VOSK RESOURCES */
     fclose(audio);
@@ -108,15 +113,21 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         strncpy(conversion_buffer, vosk_json+token->start, token->end-token->start);
         conversion_buffer[token->end-token->start] = '\0';
 
-        /* GET TIME UNITS FROM FLOAT */
+        /* DEFINITIONS FOR TIME UNITS */
         const int SECOND = 1;
-        const int MINUTE = 60;
+        const int MINUTE = 60*SECOND;
         const int HOUR = 60*MINUTE;
+
+
+        /* GET TIME UNITS FROM FLOAT */
         float raw = atof(conversion_buffer);
         int nat = int(raw); if (nat > raw) nat--; // fast replacement for floor()
         auto get = [&](int unit) {
-            return nat/unit; nat = nat % unit;
+            int out = nat/unit;
+            nat = nat % unit;
+            return out;
         };
+        
         int hours = get(HOUR);
         int minutes = get(MINUTE);
         int seconds = get(SECOND);

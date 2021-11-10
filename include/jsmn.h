@@ -1,4 +1,8 @@
 /*
+ * JSMN parses a json string into tokens, which contain pointers to the start and
+ * of a section of the string. These tokens have types which helps you parse them
+ * and are made with minimal copying of strings.
+ *
  * MIT License
  *
  * Copyright (c) 2010 Serge Zaitsev

@@ -32,3 +32,8 @@ help screen + error messages
 
 take in confidence values from vosk, search all alternatives within a certain confidence threshold
  or grey out low confidence words
+
+ no color environment variable should disable all coloring
+
+ handle interrupts properly
+ handle improper inputs
