@@ -72,6 +72,7 @@ int do_transcription(const char* model_path, const char* audio_path, transcript_
     fclose(cache_streams.timestamp);
 }
 
+
 /* Writes the json that vosk outputs to the cached files.
     Parses inputs formatted like this:
     {
@@ -118,8 +119,7 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         const int MINUTE = 60*SECOND;
         const int HOUR = 60*MINUTE;
 
-
-        /* GET TIME UNITS FROM FLOAT */
+        /* GET TIME UNITS FROM JSON STRING */
         float raw = atof(conversion_buffer);
         int nat = int(raw); if (nat > raw) nat--; // fast replacement for floor()
         auto get = [&](int unit) {
@@ -127,7 +127,7 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
             nat = nat % unit;
             return out;
         };
-        
+
         int hours = get(HOUR);
         int minutes = get(MINUTE);
         int seconds = get(SECOND);
@@ -141,10 +141,11 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         }
     };
 
-    auto jsoneq = [&](jsmntok_t *tok, const char *s) {
-        if ((tok->type == JSMN_STRING)
-        && ((int)strlen(s) == tok->end - tok->start)
-        && (strncmp(vosk_json + tok->start, s, tok->end - tok->start) == 0)) {
+    auto jsoneq = [&](int tok_index, const char *s) {
+        jsmntok_t tok = tokens[tok_index];
+        if ((tok.type == JSMN_STRING)
+        && ((int)strlen(s) == tok.end - tok.start)
+        && (strncmp(vosk_json + tok.start, s, tok.end - tok.start) == 0)) {
             return 1;
         }
         return 0;
@@ -152,8 +153,8 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
 
     for (int i = 1; i < tokens_read; i++) {
         /* SKIP IRRELEVANT FIELDS */
-        if (jsoneq(&tokens[i], "result")) {
-            if (tokens[i+1].type != JSMN_ARRAY) {
+        if (jsoneq(i, "result")) {
+            if (tokens[i + 1].type != JSMN_ARRAY) {
                 return; // shouldn't happen
             }
             /* LOOP OVER WORD STRUCTS */
@@ -164,14 +165,14 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
 
                 /* LOOP THROUGH STRUCT FIELDS */
                 for (int k = 0, field = 0; field < tokens[i + 1 + j].size; k++) {
-                    if (jsoneq(&tokens[i + 1 + j + 1 + k], "word")) {
-                        jsmntok_t* value = &tokens[i + 1 + j + 1 + k + 1];
-                        write_text(value);
+                    if (jsoneq(i + 1 + j + 1 + k, "word")) {
+                        jsmntok_t* word_token = &tokens[i + 1 + j + 1 + k + 1];
+                        write_text(word_token);
                     }
 
-                    if (jsoneq(&tokens[i + 1 + j + 1 + k], "start")) {
-                        jsmntok_t* value = &tokens[i + 1 + j + 1 + k + 1];
-                        write_timestamp(value);
+                    if (jsoneq(i + 1 + j + 1 + k, "start")) {
+                        jsmntok_t* start_timestamp_token = &tokens[i + 1 + j + 1 + k + 1];
+                        write_timestamp(start_timestamp_token);
                     }
 
                     /* ignoring end time and confidence values for now... */
