@@ -13,8 +13,11 @@ search files
 print output
     config words before/after
     pretty print filenames, extensions, etc
+    https://github.com/p-ranav/indicators
 
-convert any file to proper format (ffmpeg, https://www.ffmpeg.org/doxygen/2.3/group__lswr.html#details)
+convert any file to proper format/sample rate (ffmpeg, https://www.ffmpeg.org/doxygen/2.3/group__lswr.html#details)
+    libswresample: https://github.com/FFmpeg/FFmpeg/blob/master/doc/examples/resampling_audio.c
+    libavformat: https://ffmpeg.org/doxygen/0.6/output-example_8c-source.html
 
 ocr -> take screens from video and ocr them, use tesseract
     print ocr results in different color

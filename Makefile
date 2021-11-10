@@ -57,3 +57,6 @@ install: all
 
 # specify which rules do not actually create the file they are named after
 .PHONY: all bin_dir clean run environment
+
+# ignores suffix rules (deprecated) to save time
+.SUFFIXES:

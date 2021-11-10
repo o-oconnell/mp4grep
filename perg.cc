@@ -19,10 +19,9 @@ int main(int argc, const char** argv) {
         .timestamp  = "./bin/output/timestamps",
     };
 
-
     //// Normal mode -> Transcribe, Search, Print ////
     /* Transcription step */ {
-        // * convert files to format vosk understands
+        // * convert files to format vosk understands - ffmpeg
 
         // * transcribe files
         do_transcription(VOSK_MODEL, INPUT_WAV, cache_paths);
