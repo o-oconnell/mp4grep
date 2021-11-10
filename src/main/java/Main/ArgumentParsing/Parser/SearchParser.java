@@ -41,6 +41,7 @@ public class SearchParser implements Parser {
     }
 
     private TranscriptArguments getTranscriptArguments() {
+        searchWorkflowArgs.model = System.getenv("MP4GREP_MODEL");
         return TranscriptArguments
                 .builder()
                 .files(AudioFileFinder.getFileList(searchWorkflowArgs.filesAndDirectories))

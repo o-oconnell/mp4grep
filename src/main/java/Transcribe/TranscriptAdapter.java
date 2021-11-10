@@ -101,6 +101,7 @@ public class TranscriptAdapter {
             }
 
             printProgress(totalTranscribeDurationMillis);
+            System.out.println();
         });
     }
 
