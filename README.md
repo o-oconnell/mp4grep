@@ -11,12 +11,9 @@ dialects of English or other languages with accuracy, you will need to use a dif
 You can download other models from Vosk's [official list](https://alphacephei.com/vosk/models).
 
 ### Installation
-1. Download the latest JRE, if you don't already have JRE 11+ installed:
-`sudo apt install openjdk-17-jre`
+1. [Download](https://github.com/o-oconnell/mp4grep/releases) mp4grep and unzip it in the location that you want to install it: `unzip mp4grep-v0.1.0.zip`
 
-2. [Download](https://github.com/o-oconnell/mp4grep/releases) mp4grep and unzip it in the location that you want to install it: `unzip mp4grep-v0.1.0.zip`
-
-3. Add mp4grep to your PATH, and set its environment variables: 
+2. Add mp4grep to your PATH, and set its environment variables: 
 
 `cd mp4grep-v0.1.0`
 
@@ -24,7 +21,7 @@ You can download other models from Vosk's [official list](https://alphacephei.co
 
 This script adds mp4grep to your path and sets some environment variables.
 
-5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
+3. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
 ### Pull requests
 Pull requests are welcome. Please open a pull request if you have a bug to fix or a cool idea.
