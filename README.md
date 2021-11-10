@@ -22,15 +22,9 @@ You can download other models from Vosk's [official list](https://alphacephei.co
 
 `source install.sh`
 
-This script adds mp4grep to your path and sets three environment variables:
-
-MP4GREP_CACHE: transcription cache.
-
-MP4GREP_CONVERTED: converted audio files - Vosk requires single-channel, 16 KHz sampling rate audio input.
-
-MP4GREP_MODEL: transcription model directory.
+This script adds mp4grep to your path and sets some environment variables.
 
 5. Use mp4grep to search! `mp4grep "the birch canoe" harvard_sentences.mp4`
 
 ### Pull requests
-Pull requests are welcome. Please open a pull request if you have a bug or code smell to fix.
+Pull requests are welcome. Please open a pull request if you have a bug to fix or a cool idea.
