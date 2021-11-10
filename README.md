@@ -1,9 +1,7 @@
 mp4grep
 -------
 mp4grep is a search tool that transcribes and searches audio and video files for a regex pattern.
-By default, mp4grep will locate searchable files inside of directories.
-Currently, mp4grep only supports Linux and requires JRE 11+. Also, mp4grep does not just work on mp4 files!
-Currently supported extensions are mp2, mp3, mp4, ogg, webm, mov, and wav.
+By default, mp4grep will locate searchable files inside of directories. Also, mp4grep does not just work on mp4 files! Supported extensions are mp2, mp3, mp4, ogg, webm, mov, and wav.
 
 ### Screenshot of search results
 
