@@ -3,6 +3,7 @@ mp4grep
 mp4grep is a search tool that transcribes and searches audio and video files for a regex pattern. mp4grep isn't just for mp4 files! It also supports mp3, mp4, ogg, webm, mov, and wav.
 
 ### Screenshot of search results
+![motivation](https://github.com/o-oconnell/mp4grep/blob/main/motivation_mp4grep.png)
 
 ### Compatible transcription models
 mp4grep depends on [Vosk](https://alphacephei.com/vosk/) to transcribe audio.
