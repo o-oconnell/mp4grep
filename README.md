@@ -8,7 +8,7 @@ mp4grep is a search tool that transcribes and searches audio and video files for
 mp4grep depends on [Vosk](https://alphacephei.com/vosk/) to transcribe audio.
 By default, mp4grep ships with a 40 MB lightweight English model. If you want to transcribe 
 dialects of English or other languages with accuracy, you will need to use a different model.
-You can download models from Vosk's [official list](https://alphacephei.com/vosk/models) of supported models.
+You can download other models from Vosk's [official list](https://alphacephei.com/vosk/models).
 
 ### Why should I use mp4grep?
 * It allows you to search audio and video, instead of just text.
