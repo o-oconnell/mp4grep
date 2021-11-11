@@ -1,3 +1,5 @@
+![example workflow](https://github.com/o-oconnell/mp4grep/blob/main/.github/workflows/releaseApproval.yml/badge.svg)
+
 mp4grep
 -------
 mp4grep is a search tool that transcribes and searches audio and video files for a regex pattern. mp4grep isn't just for mp4 files! It also supports mp3, mp4, ogg, webm, mov, and wav.
