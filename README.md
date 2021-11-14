@@ -26,3 +26,6 @@ This script adds mp4grep to your path and sets some environment variables.
 
 ### Pull requests
 Pull requests are welcome. Please open a pull request if you have a bug to fix or a cool idea.
+
+### Platforms
+mp4grep currently supports Linux.
