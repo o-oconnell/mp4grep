@@ -1,6 +1,5 @@
 package Transcribe.Cache;
 
-import Transcribe.VoskAdapter;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;

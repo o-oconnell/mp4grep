@@ -1,7 +1,7 @@
 package Transcribe;
 
 import Transcribe.Cache.CacheInfo;
-import com.google.common.cache.Cache;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalTime;
 import java.util.concurrent.TimeUnit;
 
 public class VoskAdapter {
@@ -40,6 +39,14 @@ public class VoskAdapter {
         createOutputFiles(cacheInfo);
         writeMainRecognizerResults(recognizer, cacheInfo);
         writeFinalRecognizerResult(recognizer, cacheInfo);
+        deleteFile(VoskConverter.getConvertedFilename(cacheInfo.inputFilename));
+    }
+
+    private void deleteFile(String file) {
+        File fileObj = new File(file);
+        if (!fileObj.delete()) {
+            System.out.println("Failed to delete file: " + file);
+        }
     }
 
     private Recognizer createRecognizer(String modelDirectory) {

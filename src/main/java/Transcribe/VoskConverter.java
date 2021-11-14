@@ -18,7 +18,7 @@ public class VoskConverter {
     private static final int VOSK_NUMBER_ACCEPTED_CHANNELS = 1;
     private static final String VOSK_AUDIO_FILE_FORMAT = "wav";
     private static final String VOSK_AUDIO_CODEC = "pcm_s16le";
-    private static final String CONVERTED_AUDIO_FILE_DIRECTORY = System.getenv("MP4GREP_CONVERTED");
+    private static final String CONVERTED_AUDIO_FILE_DIRECTORY = System.getProperty("user.home") + File.separator + ".mp4grep_converted";
 
     public static String convertToVoskFormat(String sourceFile) {
         String targetFile = makeTargetFilename(sourceFile);
@@ -106,6 +106,6 @@ public class VoskConverter {
 
     public static String getConvertedFilename(String file) {
         String result = getFilenameWithoutExtensionOrDirectory(file) + "." + VOSK_AUDIO_FILE_FORMAT;
-        return CONVERTED_AUDIO_FILE_DIRECTORY + result;
+        return CONVERTED_AUDIO_FILE_DIRECTORY + "/" + result;
     }
 }

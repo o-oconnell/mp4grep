@@ -1,9 +1,6 @@
 package Transcribe.Cache;
 
 import Search.Searchable;
-import Transcribe.Cache.CacheInfo;
-import Transcribe.Cache.CacheKey;
-import Transcribe.VoskAdapter;
 import Transcribe.VoskConverter;
 import Transcribe.VoskProxy;
 import org.apache.commons.io.FileUtils;
