@@ -1,3 +1,5 @@
-
+Compile with make:
+make run runs the program as well, setting needed environment variables.
+make clean deletes generated binary.
 
 Transcription makes a system call to ffmpeg, so ffmpeg needs to be installed.
