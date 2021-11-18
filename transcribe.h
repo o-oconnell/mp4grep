@@ -4,7 +4,9 @@
 #include <cstdio>
 
 const int PATH_LENGTH = 256; // hardcoded for now. TODO: replace with #ifdef for different platforms.
-const bool SHOW_FFMPEG_OUTPUT = false; // TODO: move this to config.h file
+const bool SHOW_FFMPEG_OUTPUT = true; // TODO: move these to config.h file
+const bool SHOW_VOSK_OUTPUT = true;
+const bool SHOW_VOSK_RAW_JSON = true;
 
 /* struct to group the paths corresponding to a given transcription call */
 struct transcript_location {

@@ -10,7 +10,7 @@
 
 /* Subroutines */
 int get_audio_from_media(const char* input, char** output_path);
-void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files);
+int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files);
 
 /* Vosk Constants
  * Audio format used by vosk assumed to be single channel, mono audio, sampled at 16000hz, with signed 16 bit samples
@@ -35,22 +35,28 @@ int transcribe_audio(const char* model_path, const char* media_path, transcript_
     cache_streams.timestamp = fopen(cache_paths.timestamp, CACHE_FILES_OPEN_MODE);
 
     /* INIT VOSK */
-    vosk_set_log_level(-1); // disables vosk's logging, has to be done before things are initialized.
+    if (!SHOW_VOSK_OUTPUT) vosk_set_log_level(-1); // disables vosk's logging, has to be done before things are initialized.
     VoskModel* model = vosk_model_new(model_path); // NOTE: only one model needed for multiple recognizers. When multi-threading pull this out and pass each recognizer the same model.
     VoskRecognizer* recognizer = vosk_recognizer_new(model, VOSK_SAMPLING_RATE);
     vosk_recognizer_set_words(recognizer, true);
     int is_final; // variable used by recognizer to indicate this is the final part of a transcription.
 
-    /* OPEN TRANSCODED AUDIO FILE */
+    /* OPEN CONVERTED AUDIO FILE */
     const char* AUDIO_FILE_OPEN_MODE = "r";
-    FILE* audio = fopen(vosk_audio_path, AUDIO_FILE_OPEN_MODE); if (!audio) return -1;
+    FILE* audio = fopen(vosk_audio_path, AUDIO_FILE_OPEN_MODE);
+    if (!audio) {
+        return -1; // Error: failed to open converted audio file. TODO: logging
+    }
 
     /* BUFFER TO FEED AUDIO INPUT TO VOSK */
     char audio_buffer[VOSK_AUDIO_BUFFER_SIZE+1];
     size_t bytes_read;
 
-    /* POINTER FOR VOSK TO OUTPUT TO */
-    const char* vosk_json;
+    /* GET OUTPUT FROM VOSK  */
+    auto write_vosk_result = [&]() {
+        const char* vosk_json = vosk_recognizer_final_result(recognizer);
+        write_vosk_json_to_files(vosk_json, &cache_streams);
+    };
 
     while(true) {
         /* READ TO BUFFER */
@@ -62,15 +68,13 @@ int transcribe_audio(const char* model_path, const char* media_path, transcript_
         is_final = vosk_recognizer_accept_waveform(recognizer, audio_buffer, bytes_read);
 
         /* WRITE TRANSCRIPTION RESULTS TO CACHE */
-        if (!is_final) {
-            vosk_json = vosk_recognizer_partial_result(recognizer);
-            write_vosk_json_to_files(vosk_json, &cache_streams);
+        if (is_final) {
+            write_vosk_result();
         }
     }
 
-    /* WRITE FINAL TRANSCRIPTION RESULT */
-    vosk_json = vosk_recognizer_final_result(recognizer);
-    write_vosk_json_to_files(vosk_json, &cache_streams);
+    /* WRITE THE LAST TRANSCRIPTION RESULT */
+    write_vosk_result();
 
     /* CLEANUP VOSK RESOURCES */
     vosk_recognizer_free(recognizer);
@@ -122,7 +126,7 @@ int get_audio_from_media(const char* input, char** output_path) {
       }]
     }
 */
-void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files) {
+int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files) {
     const int VOSK_JSON_MAX_TOKENS = 1024;
     jsmntok_t tokens[VOSK_JSON_MAX_TOKENS];
 
@@ -132,7 +136,7 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         jsmn_init(&parser);
         tokens_read = jsmn_parse(&parser, vosk_json, strlen(vosk_json), tokens, VOSK_JSON_MAX_TOKENS);
         if ((tokens_read <= 0) || (tokens[0].type != JSMN_OBJECT)) {
-            return; // TODO: log failure
+            return -1; // TODO: log json parse failure
         }
     }
 
@@ -187,7 +191,7 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         /* SKIP IRRELEVANT FIELDS */
         if (jsoneq(i, "result")) {
             if (tokens[i + 1].type != JSMN_ARRAY) {
-                return; // shouldn't happen
+                return -1; // shouldn't happen
             }
             /* LOOP OVER WORD STRUCTS */
             for (int j = 0, obj = 0; obj < tokens[i + 1].size; j++) {
@@ -218,4 +222,5 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
             break; // break if we already looped over results;
         }
     }
+    return 0; // success
 }
