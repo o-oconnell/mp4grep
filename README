@@ -1,0 +1,3 @@
+
+
+Transcription makes a system call to ffmpeg, so ffmpeg needs to be installed.

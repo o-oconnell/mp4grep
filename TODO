@@ -1,8 +1,13 @@
 
+longterm: modify makefile so that it can select different binaries to link with for each platform, by copying them into binary folder
+example: windows: windows_vosk_api.dll -> vosk_api.dll, mac: mac_vosk_api.so -> vosk_api.so, linux: linux_vosk_api.so -> vosk_api.so
+
 parse arguments, take in arguments (getopt?)
 
 vosk might be able to provide a warning when users search for words their vosk model
 wont transcribe.
+
+implement file cache system for transcriptions.
 
 multithreading
     create worker threads that continually draw orders from a dynamically allocated pool.
@@ -37,3 +42,6 @@ take in confidence values from vosk, search all alternatives within a certain co
 
  handle interrupts properly
  handle improper inputs
+
+make it so after a certain threshold filenames are printed next to results to make it easier to see which results are for which files
+Otherwise just have filenames at top of list of results if under threshold.

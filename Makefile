@@ -3,39 +3,52 @@
 include config.mk
 
 # output dir for executable
-EXECUTABLE_NAME =perg
-BIN_DIR=./bin
+EXECUTABLE_NAME =mediagrep
+SRC_DIR=.
+BIN_DIR=bin
+INC_DIR=include
 
 # list all source files here
-SRC = perg.cc transcribe.cc
+FILES = mediagrep transcribe
+SRC = ${FILES:%=$(SRC_DIR)/%.cc}
+OBJ = ${FILES:%=$(BIN_DIR)/%.o}
 
-OBJ = ${SRC:.c=.o}
+# Includes
+IFLAGS= -I$(INC_DIR)
+
+# Linking (LDDIRS -> directories to search, LDLIBS -> library names)
+LDLIBS = -lvosk -ldl
+LDDIRS = lib
+LDFLAGS= -L$(LDDIRS)
 
 ## Rules
-all: $(EXECUTABLE_NAME)
+all: $(BIN_DIR)/$(EXECUTABLE_NAME)
 
 # show environment vars
-environment:
-	@echo "\tgrep_star build options: (modify in config.mk)"
-	@echo "\tCC = ${CC}"
-	@echo "\tCPPFLAGS = ${CPPFLAGS}"
-	@echo "\tLDFLAGS = ${LDFLAGS}"
-	@echo "\tLDLIBS = ${LDLIBS}"
+environment: config.mk
+	@echo "${EXECUTABLE_NAME} build options: (modify in config.mk)"
+	@echo "CXX = ${CXX}"
+	@echo "CXXFLAGS = ${CXXFLAGS}"
+	@echo "LDFLAGS = ${LDFLAGS}"
+	@echo "LDLIBS = ${LDLIBS}"
 	@echo ""
 
-# make sure configuration and environment are set before compiling objects
-${OBJ}: config.mk environment
-
 # compile object files with configuration from config.mk
-%.o: %.c
+$(OBJ): ${BIN_DIR}/%.o: ${SRC_DIR}/%.cc environment dirs
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# override for transcribe.cc because it needs ffmpeg headers included during compile
+$(BIN_DIR)/transcribe.o: $(SRC_DIR)/transcribe.cc environment dirs
+	$(CXX) $(CXXFLAGS) $(IFLAGS) -c $< -o $@
 
 # link all objects, produce final executable and output to BIN_DIR
-${EXECUTABLE_NAME}: ${OBJ} bin_dir
-	${CC} -o $(BIN_DIR)/$@ ${OBJ} $(IDIRS) ${LDFLAGS} -Wl,-rpath ${LDDIRS} ${LDLIBS}
+${BIN_DIR}/${EXECUTABLE_NAME}: ${OBJ} dirs
+	$(CXX) ${OBJ} -o $@ $(IFLAGS) $(LDFLAGS) -Wl,-rpath $(LDDIRS) $(LDLIBS)
 
-# make binary output directory
-bin_dir:
+# make output directories
+dirs:
 	mkdir -p $(BIN_DIR)
+	mkdir -p $(BIN_DIR)/output #TODO: remove once inputs are no longer hardcoded
 
 # clean output dir
 clean:

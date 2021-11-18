@@ -1,21 +1,32 @@
 #include <cstdio>
 #include <string>
 #include <cstring>
+#include <climits>
 
 /* Libs */
 #include "transcribe.h"
 #include "include/vosk_api.h"
 #include "include/jsmn.h"
 
+/* Subroutines */
+int get_audio_from_media(const char* input, char** output_path);
 void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files);
 
-/* Vosk models are trained on this sampling rate, so it's a hard requirement
-that audio inputs have exactly this same rate. */
+/* Vosk Constants
+ * Audio format used by vosk assumed to be single channel, mono audio, sampled at 16000hz, with signed 16 bit samples
+ */
 const float VOSK_SAMPLING_RATE = 16000.0;
+const char* VOSK_SAMPLE_CODEC = "pcm_s16le";
+const int VOSK_CHANNEL_COUNT = 1;
 
-int do_transcription(const char* model_path, const char* audio_path, transcript_location cache_paths) {
+int transcribe_audio(const char* model_path, const char* media_path, transcript_location cache_paths) {
     /* CONSTANT CONFIGS FOR VOSK */
     const int VOSK_AUDIO_BUFFER_SIZE = 4096;
+
+    /* TRANSCODE AUDIO */
+    char vosk_audio_path_[PATH_LENGTH];
+    char* vosk_audio_path = vosk_audio_path_;
+    get_audio_from_media(media_path, &vosk_audio_path); // TODO: don't ignore error code
 
     /* OPEN TRANSCRIPTION STREAMS */
     const char* CACHE_FILES_OPEN_MODE = "w";
@@ -26,17 +37,16 @@ int do_transcription(const char* model_path, const char* audio_path, transcript_
     /* INIT VOSK */
     vosk_set_log_level(-1); // disables vosk's logging, has to be done before things are initialized.
     VoskModel* model = vosk_model_new(model_path); // NOTE: only one model needed for multiple recognizers. When multi-threading pull this out and pass each recognizer the same model.
-
     VoskRecognizer* recognizer = vosk_recognizer_new(model, VOSK_SAMPLING_RATE);
     vosk_recognizer_set_words(recognizer, true);
     int is_final; // variable used by recognizer to indicate this is the final part of a transcription.
 
-    /* OPEN INPUT AUDIO FILE */
+    /* OPEN TRANSCODED AUDIO FILE */
     const char* AUDIO_FILE_OPEN_MODE = "r";
-    FILE* audio = fopen(audio_path, AUDIO_FILE_OPEN_MODE); if (!audio) return -1;
+    FILE* audio = fopen(vosk_audio_path, AUDIO_FILE_OPEN_MODE); if (!audio) return -1;
 
     /* BUFFER TO FEED AUDIO INPUT TO VOSK */
-    char audio_buffer[VOSK_AUDIO_BUFFER_SIZE];
+    char audio_buffer[VOSK_AUDIO_BUFFER_SIZE+1];
     size_t bytes_read;
 
     /* POINTER FOR VOSK TO OUTPUT TO */
@@ -63,13 +73,36 @@ int do_transcription(const char* model_path, const char* audio_path, transcript_
     write_vosk_json_to_files(vosk_json, &cache_streams);
 
     /* CLEANUP VOSK RESOURCES */
-    fclose(audio);
     vosk_recognizer_free(recognizer);
     vosk_model_free(model);
 
     /* CLOSE FILE STREAMS */
+    fclose(audio);
     fclose(cache_streams.text);
     fclose(cache_streams.timestamp);
+
+    /* DELETE CONVERTED AUDIO */
+    remove(vosk_audio_path);
+
+    return 0; // success
+}
+
+
+/* Gets the audio from the input media file, and formats it correctly for vosk. Returns success status. */
+int get_audio_from_media(const char* input, char** output_path) {
+    /* SET PATH OF CONVERTED FILE */
+    *output_path = strcat(*output_path, input);
+    *output_path = strcat(*output_path, "_converted.wav");
+
+    /* CALL FFMPEG WITH CORRECT PARAMETERS FOR VOSK
+     * Note: This code is not very portable. An #ifdef solution for different
+     * platforms could be added once we have those figured out.
+     */
+    char command[64+PATH_LENGTH+PATH_LENGTH];
+    const char* ffmpeg_command_template = "ffmpeg%s -i %s -acodec %s -ac %d -ar %f %s";
+    const char* ffmpeg_show_output = (SHOW_FFMPEG_OUTPUT)? "" : " -loglevel quiet";
+    sprintf(command, ffmpeg_command_template, ffmpeg_show_output, input, VOSK_SAMPLING_RATE, VOSK_SAMPLE_CODEC, VOSK_CHANNEL_COUNT, *output_path);
+    return system(command);
 }
 
 
@@ -92,8 +125,8 @@ int do_transcription(const char* model_path, const char* audio_path, transcript_
 void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files) {
     const int VOSK_JSON_MAX_TOKENS = 1024;
     jsmntok_t tokens[VOSK_JSON_MAX_TOKENS];
-    int tokens_read;
 
+    int tokens_read;
     {
         jsmn_parser parser;
         jsmn_init(&parser);
@@ -108,36 +141,35 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         fprintf(cache_files->text, WRITE_FORMAT, token->end-token->start, vosk_json+token->start);
     };
 
-    char conversion_buffer[16];  // small buffer to put floats from vosk into while converting them to timestamp format.
+    char conversion_buffer[16];  // small buffer to put strings from vosk into while converting them to timestamp format.
     auto write_timestamp = [&](jsmntok_t* token) {
         /* SLICE OUT NUMBER FROM VOSK OUTPUT */
         strncpy(conversion_buffer, vosk_json+token->start, token->end-token->start);
         conversion_buffer[token->end-token->start] = '\0';
 
-        /* DEFINITIONS FOR TIME UNITS */
+        /* CONSTANTS FOR TIME UNITS */
         const int SECOND = 1;
         const int MINUTE = 60*SECOND;
         const int HOUR = 60*MINUTE;
 
         /* GET TIME UNITS FROM JSON STRING */
         float raw = atof(conversion_buffer);
-        int nat = int(raw); if (nat > raw) nat--; // fast replacement for floor()
-        auto get = [&](int unit) {
-            int out = nat/unit;
-            nat = nat % unit;
+        int total_seconds = int(raw); if (total_seconds > raw) total_seconds--; // fast replacement for floor()
+
+        auto get = [&total_seconds](int unit) {
+            int out = total_seconds/unit;
+            total_seconds = total_seconds % unit;
             return out;
         };
-
         int hours = get(HOUR);
         int minutes = get(MINUTE);
-        int seconds = get(SECOND);
+        int seconds = total_seconds;
 
         /* FORMAT TO TIMESTAMP */
         if (hours > 0) {
             fprintf(cache_files->timestamp, "%.2i:%.2i:%.2i\n", hours, minutes, seconds);
         } else {
             fprintf(cache_files->timestamp, "%.2i:%.2i\n", minutes, seconds);
-
         }
     };
 
