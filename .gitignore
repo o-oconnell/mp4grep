@@ -1,4 +1,6 @@
 models/
 bin/
+obj/
 test_files/
+
 TODO

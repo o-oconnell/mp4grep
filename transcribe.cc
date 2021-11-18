@@ -165,7 +165,7 @@ void write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_f
         int minutes = get(MINUTE);
         int seconds = total_seconds;
 
-        /* FORMAT TO TIMESTAMP */
+        /* FORMAT AS TIMESTAMP */
         if (hours > 0) {
             fprintf(cache_files->timestamp, "%.2i:%.2i:%.2i\n", hours, minutes, seconds);
         } else {
