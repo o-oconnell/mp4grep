@@ -5,9 +5,8 @@
 
 const int PATH_LENGTH = 512; // hardcoded for now. TODO: replace with #ifdef for different platforms.
 
-const bool SHOW_FFMPEG_OUTPUT = true; // TODO: move these to config.h file
-const bool SHOW_VOSK_OUTPUT = true;
-const bool SHOW_VOSK_RAW_JSON = true;
+const bool SHOW_FFMPEG_OUTPUT = false; // TODO: move these to config.h file
+const bool SHOW_VOSK_OUTPUT = false;
 
 /* key to uniquely identify different transcriptions. */
 struct transcript_cache_key {

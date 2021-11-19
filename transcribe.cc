@@ -30,6 +30,7 @@ const char* VOSK_SAMPLE_CODEC = "pcm_s16le";
 const int VOSK_CHANNEL_COUNT = 1;
 const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 
+
 int transcribe(const char* model_path, const char* media_path, transcript_location* output) {
     /* BUILD CACHE KEY */
     transcript_cache_key this_call;
