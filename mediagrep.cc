@@ -12,19 +12,14 @@ int main(int argc, const char** argv) {
     // Parse arguments
     // * flags -> need global vars to store feature flags and options
     // * mode
-    // * files to grip
-
-    transcript_location cache_paths;
-    cache_paths.text = "./bin/output/text";
-    cache_paths.timestamp  = "./bin/output/timestamps";
+    // * files to grep
 
     //// Normal mode -> Transcribe, Search, Print ////
-    /* Transcription step */ {
-        // * convert files to format vosk understands using ffmpeg
-
-        // * transcribe files
-        transcribe_audio(VOSK_MODEL, INPUT_WAV, cache_paths);
+    transcript_location cache_paths;
+    if (transcribe(VOSK_MODEL, INPUT_WAV, &cache_paths) != 0) {
+        // TODO handle error
     }
+
 
     // Search step
         // * Feed transcription outputs to searcher

@@ -33,13 +33,14 @@ environment: config.mk
 	@echo "LDLIBS = ${LDLIBS}"
 	@echo ""
 
-# compile object files with configuration from config.mk
-$(OBJ): ${BIN_DIR}/%.o: ${SRC_DIR}/%.cc environment dirs
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
 # override for transcribe.cc because it needs ffmpeg headers included during compile
+MEOW_FLAGS= -O3 -mavx2 -maes
 $(BIN_DIR)/transcribe.o: $(SRC_DIR)/transcribe.cc environment dirs
-	$(CXX) $(CXXFLAGS) $(IFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(IFLAGS) $(MEOW_FLAGS) -c $< -o $@
+
+# compile object files with configuration from config.mk
+${BIN_DIR}/%.o: ${SRC_DIR}/%.cc environment dirs
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # link all objects, produce final executable and output to BIN_DIR
 ${BIN_DIR}/${EXECUTABLE_NAME}: ${OBJ} dirs
@@ -48,7 +49,6 @@ ${BIN_DIR}/${EXECUTABLE_NAME}: ${OBJ} dirs
 # make output directories
 dirs:
 	mkdir -p $(BIN_DIR)
-	mkdir -p $(BIN_DIR)/output #TODO: remove once inputs are no longer hardcoded
 
 # clean output dir
 clean:
@@ -65,7 +65,7 @@ run: all
 # put everything in distributable archive
 dist:
 
-# compile and install for execution from anywhere
+# compile and install for execution from anywhere #TODO: make this actually install mediagrep
 install: all
 
 # specify which rules do not actually create the file they are named after
