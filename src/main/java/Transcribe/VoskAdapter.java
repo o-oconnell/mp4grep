@@ -184,6 +184,7 @@ public class VoskAdapter {
     }
 
     private String getTimestampFormat(String seconds) {
+
         // edge case since a long cannot consist only of zeros
         if (containsOnlyZeros(removeFraction(seconds))) {
             return "0" + ":" + "00";
@@ -228,7 +229,7 @@ public class VoskAdapter {
     private String getMinutesZeroPrefixed(long secondsNum) {
         long minutes = (TimeUnit.SECONDS.toMinutes(secondsNum) - TimeUnit.SECONDS.toHours(secondsNum)* 60);
         if (minutes < 10) {
-            return "0" + minutes;
+            return "0" + minutes + ":";
         }
         return minutes + ":";
     }
