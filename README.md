@@ -3,11 +3,12 @@ mp4grep
 mp4grep is a search tool that transcribes and searches audio and video files for a regex pattern. mp4grep isn't just for mp4 files! It also supports mp3, mp4, ogg, webm, mov, and wav.
 
 ### Screenshot of search results
+![motivation](https://github.com/o-oconnell/mp4grep/blob/main/motivation_mp4grep.png)
 
 ### Compatible transcription models
 mp4grep depends on [Vosk](https://alphacephei.com/vosk/) to transcribe audio.
 By default, mp4grep ships with a 40 MB lightweight English model. If you want to transcribe 
-dialects of English or other languages with accuracy, you will need to use a different model.
+dialects of English or other languages with accuracy, you will need to use a different model (specify with `--model`).
 You can download other models from Vosk's [official list](https://alphacephei.com/vosk/models).
 
 ### Installation
@@ -25,3 +26,6 @@ This script adds mp4grep to your path and sets some environment variables.
 
 ### Pull requests
 Pull requests are welcome. Please open a pull request if you have a bug to fix or a cool idea.
+
+### Platforms
+mp4grep currently supports Linux.
