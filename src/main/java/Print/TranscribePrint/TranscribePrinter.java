@@ -42,9 +42,9 @@ public class TranscribePrinter {
         }
 
         if (arguments.printToFiles == true) {
-            printToFile(printList, searchable.filename);
+            printToFile(printList, searchable);
         } else {
-            System.out.println(GlobalColors.ANSI_GREEN + "Transcription of " + searchable.filename + GlobalColors.ANSI_RESET);
+            System.out.println("\n" + GlobalColors.ANSI_GREEN + "Transcription of " + searchable.filename + GlobalColors.ANSI_RESET);
             printList.stream().forEach(System.out::println);
         }
     }
@@ -56,7 +56,11 @@ public class TranscribePrinter {
         }
     }
 
-    private void printToFile(List<String> list, String filename) {
+    private void printToFile(List<String> list, Searchable searchable) {
+        // Trim any leading directories:
+        String[] leadingDirs = searchable.filename.split("/");
+        String filename = leadingDirs[leadingDirs.length - 1];
+
         if (fileExists(getOutFilename(filename))) {
             System.out.println("Error: file " + getOutFilename(filename) + " already exists");
             return;

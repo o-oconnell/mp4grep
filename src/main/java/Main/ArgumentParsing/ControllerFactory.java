@@ -22,20 +22,19 @@ public class ControllerFactory {
                     .args(args)
                     .build();
         } else if (argsContains(TRANSCRIBE_ANY, args)) {
-            System.out.println(TRANSCRIBE +" or " + TRANSCRIBE_TO_FILES + " option used. Transcribing without search.");
-            parser = TranscribeParser.builder()
+            parser = TranscribeParser
+                    .builder()
                     .args(args)
                     .build();
+        } else if (argsContains(CLEAR_CACHE, args)) {
+            System.out.println("Clearing cache.");
+            TranscriptCache.clearCacheFiles();
+            System.exit(0);
         } else {
             parser = SearchParser
                     .builder()
                     .args(args)
                     .build();
-        }
-
-        if (argsContains(CLEAR_CACHE, args)) {
-            System.out.println("Clearing cache.");
-            TranscriptCache.clearCacheFiles();
         }
 
         return parser.getController();

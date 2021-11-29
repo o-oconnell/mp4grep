@@ -46,7 +46,7 @@ public class TranscribeParser implements Parser {
         }
         return RawPrintArguments
                 .builder()
-                .printToFiles(rawWorkflowArgs.exclusiveOptions.transcribeToFiles)
+                .printToFiles(rawWorkflowArgs.exclusiveOptions.transcribeToFile)
                 .wordsPerLine(rawWorkflowArgs.wordsPerLine)
                 .build();
     }

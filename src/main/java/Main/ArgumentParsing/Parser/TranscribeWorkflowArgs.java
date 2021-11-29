@@ -27,7 +27,7 @@ public class TranscribeWorkflowArgs {
         @Option(names = {"--transcribe"})
         public boolean transcribe = false;
 
-        @Option(names = {"--transcribe-to-files"})
-        public boolean transcribeToFiles = false;
+        @Option(names = {"--transcribe-to-file"})
+        public boolean transcribeToFile = false;
     }
 }
