@@ -2,75 +2,368 @@
 #include "mediagrep.h"
 #include "transcribe.h"
 #include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <fstream>
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <iostream>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 using namespace std;
 
-// hardcoded values, TODO: remove, make configurable or input
-const char* INPUT_WAV = "./test_files/harvardsentences.mp4";
-const char* VOSK_MODEL = "./models/vosk-model-small-en-us-0.15";
+struct parsed_args {
+    unordered_map<string, string> args;
+    unordered_set<string> flags;
+    vector<string> params;
+};
+
+const string DEFAULT_MODEL = getenv("MEDIAGREP_MODEL") ? getenv("MEDIAGREP_MODEL") : "model";
+
+const vector<string> AUDIO_TYPES{"mp3", "mp4", "ogg", "webm", "mov", "wav"};
+
+void parse_args(int argc, const char** argv, struct parsed_args& pargs);
+void search(int argc, const char** argv);
+void transcribe_only(int argc, const char** argv);
+void transcribe_to_files(int argc, const char** argv);
+vector<string> get_audio_files(vector<string>& files);
 
 int main(int argc, const char** argv) {
-    // Parse arguments
-    // * flags -> need global vars to store feature flags and options
-    // * mode
-    // * files to grep
 
-    //// Normal mode -> Transcribe, Search, Print ////
-    transcript_location cache_paths;
-    if (transcribe(VOSK_MODEL, INPUT_WAV, &cache_paths) != 0) {
-        // TODO handle error
+    auto option_exists = [&](const std::string& option) {
+	return std::find(argv, argv + argc, option) != (argv + argc);
+    };
+
+    /* SET THE WORKFLOW */
+    if (option_exists("--help")) {
+	printf("Help message goes here\n");
+	exit(0);
+    } else if (option_exists("--clear-cache")) {
+	printf("Clearing cache\n");
+	// clear_cache();
+	exit(0);
+    } else if (option_exists("--transcribe")) { 
+	transcribe_only(argc, argv);
+    } else if (option_exists("--transcribe-to-files")) {
+	transcribe_to_files(argc, argv);
+    } else {
+	search(argc, argv);
     }
 
+    return 0;
+}
 
-    /* READ ENTIRE TRANSCRIPT INTO MEMORY, MAP STARTING INDEX OF EACH WORD TO A TIMESTAMP*/
-    std::ifstream text(cache_paths.text),  timestamp(cache_paths.timestamp);
-    std::string transcript, line, timestampLine;
-    std::map<int, std::string> indexToTimestamp;
+void transcribe_to_files(int argc, const char** argv) {
 
-    while (getline(text, line) && getline(timestamp, timestampLine)) {
-	indexToTimestamp[transcript.length()] = timestampLine;
-	transcript += line + ' ';
+    /* SET DEFAULT ARGUMENTS */
+    unordered_map<string, string> valid_args({
+	    { "--words", "5"},
+	    { "--model", DEFAULT_MODEL},
+	});
+    unordered_set<string> valid_flags{"--transcribe-to-files"};
+
+    /* PARSE ARGUMENTS */
+    struct parsed_args pargs;
+    pargs.flags = valid_flags;
+    pargs.args = valid_args;
+    parse_args(argc, argv, pargs);
+
+    /* ERROR CHECK ARGUMENTS (TODO: inexhaustive) */
+    if (pargs.params.empty()) {
+	printf("no files provided\n");
+	exit(0);
     }
-
-    std::string SEARCH_STRING = "the";
-    std::size_t found, findstart = 0;
-    const int NUM_WORDS_BEFORE = 5;
-    const int NUM_WORDS_AFTER = 5;
-
-    /* GENERATE AND PRINT EACH MATCH LINE */
-    while ((found = transcript.find(SEARCH_STRING, findstart)) != std::string::npos) {
-	std::map<int, std::string>::const_iterator first_word = --indexToTimestamp.upper_bound(found);
-	for (int i = 0; i < NUM_WORDS_BEFORE && first_word != indexToTimestamp.begin(); ++i) {
-	    first_word--;
-	}
-
-	std::map<int, std::string>::const_iterator last_word = indexToTimestamp.lower_bound(found + SEARCH_STRING.length());
-	for (int i = 0; i < NUM_WORDS_AFTER && last_word != indexToTimestamp.end(); ++i) {
-	    last_word++;
-	}
-
-	std::string timestamp = first_word->second;
-	std::string before_highlight = transcript.substr(firstWord->first, found - firstWord->first);
-	std::string highlight = transcript.substr(found, SEARCH_STRING.length());
-	// TODO: gives an extra space after match when the last word in the file is matched
-	std::string after_highlight = transcript.substr(found + SEARCH_STRING.length(), last_word->first - (found + SEARCH_STRING.length()) - 1);
-	
-	printf("match:%s:%s||%s||%s:done\n", matchingTimestamp.c_str(), before_highlight.c_str(), highlight.c_str(), after_highlight.c_str());
-	findstart = found + 1;
-    }
-
-    /* CLOSE TRANSCRIPT AND TIMESTAMP CACHE FILES */
-    text.close();
-    timestamp.close();
     
-    // Search step
-        // * Feed transcription outputs to searcher
-        // * Search
+    for (string file : pargs.params) {
 
-    // Print step
-        // Format search output and print
+	/* CREATE OR RETRIEVE TRANSCRIPT AND TIMESTAMPS */
+	transcript_location cache_paths;
+	if (transcribe(pargs.args["--model"].c_str(), file.c_str(), &cache_paths) != 0) {
+	    // TODO handle error
+	}
+	
+	/* SETUP TRANSCRIPT AND TIMESTAMP INPUT */
+	ifstream text(cache_paths.text),  timestamp(cache_paths.timestamp);
+	int word_number = 0, words_per_line = atoi(pargs.args["--words"].c_str());
+	string word_tmp, timestamp_tmp, line, line_timestamp;
+	
+	/* SETUP OUTPUT FILE */
+	string output_file = file + "_transcript.txt";
+	ofstream outstream;
+	outstream.open(output_file, ios_base::app);
+	
+	/* READ FROM TRANSCRIPTS AND TIMESTAMPS */
+	while (getline(text, word_tmp) && getline(timestamp, timestamp_tmp)) {
 
+	    /* APPEND LINES WITH words_per_line WORDS TO FILE */
+	    if (word_number % words_per_line == 0 && word_number < words_per_line) {
+		line_timestamp = timestamp_tmp;
+	    } else if (word_number % words_per_line == 0 && word_number >= words_per_line) {
+		outstream << "[" << line_timestamp << "]:" << line << '\n';
+		line.clear();
+		line_timestamp = timestamp_tmp;
+	    }
+
+	    word_number++;
+	    line += word_tmp + ' ';
+	}
+
+	outstream << "[" << line_timestamp << "]:" << line << '\n';
+	outstream.close();
+
+	/* CLOSE TRANSCRIPT AND TIMESTAMP CACHE FILES */
+	text.close();
+	timestamp.close();
+    }
+}
+
+void transcribe_only(int argc, const char** argv) {
+
+    /* SET DEFAULT ARGUMENTS */
+    unordered_map<string, string> valid_args({
+	    { "--words", "5"},
+	    { "--model", DEFAULT_MODEL},
+	});
+    unordered_set<string> valid_flags{"--transcribe"};
+
+    /* PARSE ARGUMENTS */
+    struct parsed_args pargs;
+    pargs.flags = valid_flags;
+    pargs.args = valid_args;
+    parse_args(argc, argv, pargs);
+
+    /* ERROR CHECK ARGUMENTS (TODO: inexhaustive) */
+    if (pargs.params.empty()) {
+	printf("No files provided.\n");
+	exit(0);
+    }
+
+    for (string file : pargs.params) {
+
+	/* CREATE OR RETRIEVE TRANSCRIPT AND TIMESTAMPS */
+	transcript_location cache_paths;
+	if (transcribe(pargs.args["--model"].c_str(), file.c_str(), &cache_paths) != 0) {
+	    // TODO handle error
+	}
+
+	/* SETUP TRANSCRIPT AND TIMESTAMP INPUT */
+	ifstream text(cache_paths.text),  timestamp(cache_paths.timestamp);
+	int word_number = 0, words_per_line = atoi(pargs.args["--words"].c_str());
+	string word_tmp, timestamp_tmp, line, line_timestamp;
+	
+	/* READ FROM TRANSCRIPTS AND TIMESTAMPS */
+	while (getline(text, word_tmp) && getline(timestamp, timestamp_tmp)) {
+
+	    /* PRINT LINES WITH words_per_line WORDS */
+	    if (word_number % words_per_line == 0 && word_number < words_per_line) {
+		line_timestamp = timestamp_tmp;
+	    } else if (word_number % words_per_line == 0 && word_number >= words_per_line) {
+		printf("[%s]:%s\n", line_timestamp.c_str(), line.c_str());
+		line.clear();
+		line_timestamp = timestamp_tmp;
+	    }
+
+	    word_number++;
+	    line += word_tmp + ' ';
+	}
+
+	printf("[%s]:%s\n", line_timestamp.c_str(), line.c_str());
+
+	/* CLOSE TRANSCRIPT AND TIMESTAMP CACHE FILES */
+	text.close();
+	timestamp.close();
+    }
+
+}    
+
+void parse_args(int argc, const char** argv, struct parsed_args& pargs) {
+
+
+    vector<string> args(argv, argv + argc);
+    set<int> used_args{0}; 
+    unordered_map<string, string>& valid_args = pargs.args;
+    const unordered_set<string>& valid_flags = pargs.flags;
+
+    // Skip the first arg, the command.
+    for (unsigned i = 1; i < args.size(); ++i) {
+
+	/* VALID ARGUMENTS WITH VALUES */
+	if (valid_flags.find(args[i]) == valid_flags.end() 
+	    && valid_args.find(args[i]) != valid_args.end()
+	    && i + 1 < args.size()
+	    && used_args.find(i + 1) == used_args.end()) {
+	    
+	    valid_args[args[i]] = args[i + 1];
+	    
+	    ++i; // SKIP THE VALUE
+	}
+	
+	/* VALID ARGUMENTS WITHOUT VALUES */
+	else if (valid_flags.find(args[i]) == valid_flags.end()
+		 && valid_args.find(args[i]) != valid_args.end()
+		 && (i + 1 >= args.size() || used_args.find(i + 1) != used_args.end())) {
+	    printf("Missing value for argument %s\n", args[i].c_str());
+	    exit(1);
+	}
+
+	/* VALID FLAGS */
+	else if (valid_flags.find(args[i]) != valid_flags.end()) {
+	    used_args.insert(i);
+	}
+
+	/* TREAT EVERYTHING ELSE AS A PARAM */ 
+	else {
+	    pargs.params.push_back(args[i]);
+	}
+    }
+}
+
+void search(int argc, const char** argv) {
+
+    /* SET DEFAULT ARGS */
+    unordered_map<string, string> valid_args({
+	    { "--before", "5"},
+	    { "--after", "5"},
+	    { "--model", DEFAULT_MODEL},
+	});
+
+    /* PARSE ARGS */
+    struct parsed_args pargs;
+    pargs.args = valid_args;
+    parse_args(argc, argv, pargs);
+
+    /* ERROR CHECK ARGS */
+    string search;
+    vector<string> files;
+    
+    for (unsigned i = 0; i < pargs.params.size(); ++i) {
+	if (search.empty()) {
+	    search = pargs.params[i];
+	} else {
+	    files.push_back(pargs.params[i]);
+	}
+    }
+    
+    if (search.empty()) {
+	printf("No search string provided. Exiting.\n");
+	exit(0);
+    }
+
+    if (files.empty()) {
+	printf("No files to search provided. Exiting.\n");
+	exit(0);
+    }
+
+    vector<string> all_audio_files = get_audio_files(files);
+    
+    for (string file : files) {
+    
+	/* CREATE OR RETRIEVE TRANSCRIPT AND TIMESTAMPS */
+	transcript_location cache_paths;
+	if (transcribe(pargs.args["--model"].c_str(), file.c_str(), &cache_paths) != 0) {
+	    // TODO handle error
+	}
+    
+	/* SETUP TRANSCRIPT AND TIMESTAMP INPUT */
+	ifstream text(cache_paths.text),  timestamp(cache_paths.timestamp);
+	string transcript, line, timestampLine;
+	map<int, string> indexToTimestamp;
+	
+	while (getline(text, line) && getline(timestamp, timestampLine)) {
+	    /* MAP STARTING INDEX OF EACH WORD TO A TIMESTAMP */
+	    indexToTimestamp[transcript.length()] = timestampLine;
+
+	    /* READ TRANSCRIPT INTO MEMORY */
+	    transcript += line + ' ';
+	}
+
+	size_t found, findstart = 0;
+	int before = atoi(pargs.args["--before"].c_str());
+	int after = atoi(pargs.args["--after"].c_str());
+
+	/* FIND START INDEX OF EACH MATCHING WORD */
+	while ((found = transcript.find(search, findstart)) != string::npos) {
+
+	    /* FIND START INDEX OF FIRST WORD TO PRINT */
+	    map<int, string>::const_iterator first_word = --indexToTimestamp.upper_bound(found);
+	    for (int i = 0; i < before && first_word != indexToTimestamp.begin(); ++i) {
+		first_word--;
+	    }
+	    int first_word_start = first_word->first;
+
+	    /* TIMESTAMP OF FIRST WORD */
+	    string timestamp = first_word->second;
+
+	    /* START INDEX OF LAST WORD */
+	    map<int, string>::const_iterator last_word = indexToTimestamp.lower_bound(found + search.length());
+	    for (int i = 0; i < after && last_word != indexToTimestamp.end(); ++i) {
+		last_word++;
+	    }
+	    int last_word_start = last_word->first;
+
+
+	    /* PRINT MATCH LINE */
+	    string before_highlight = transcript.substr(first_word_start, found - first_word_start);
+	    string highlight = transcript.substr(found, search.length());
+	    // TODO: gives an extra space after match when the last word in the file is matched
+	    string after_highlight = transcript.substr(found + search.length(),
+						       last_word_start - (found + search.length()) - 1);
+
+	    printf("[%s]:%s||%s||%s\n",
+		   timestamp.c_str(),
+		   before_highlight.c_str(),
+		   highlight.c_str(),
+		   after_highlight.c_str());
+	    
+	    findstart = found + 1;
+	}
+
+	/* CLOSE TRANSCRIPT AND TIMESTAMP CACHE FILES */
+	text.close();
+	timestamp.close();
+    }
+}
+
+vector<string> get_audio_files(vector<string>& files) {
+    
+    vector<string> output;
+    for (string file : files) {
+	std::filesystem::path path(file);
+	std::error_code ec; // TODO handle errors
+
+	if (std::filesystem::is_directory(path, ec)) {
+	    // get all audio files out of it, deal with them
+	    for (const auto & file_it : std::filesystem::directory_iterator(file)) {
+		if (file_is_valid(file_it.path())) {
+		    output.push_back(file_it.path());
+		}
+	    }
+	    
+
+	} else if (fs::is_regular_file(path, ec) && file_is_valid(file)) {
+	    // add it to the output if it is an audio file
+	    output.push_back(file);
+	}
+    }
+}
+
+int file_is_valid(string filename) {
+
+    istringstream iss(filename);
+    vector<string> split_on_period;
+    string tok;
+    while (std::getline(iss, tok, '.')) {
+	if (!tok.empty())
+	    split_on_period.push_back(tok);
+    }
+	    
+    for (string valid_ext : AUDIO_TYPES) {
+	if (split_on_period[split_on_period.size() - 1] == valid_ext) {
+	    return 1;
+	}
+    }
     return 0;
 }

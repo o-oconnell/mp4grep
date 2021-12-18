@@ -2,6 +2,8 @@
 #define MEDIAGREP_TRANSCRIBE_H
 
 #include <sys/stat.h> // TODO: replace with #ifdef for different platforms. stat.h should be fine for unix.
+#include <cstdlib>
+#include <string>
 
 const int PATH_LENGTH = 512; // hardcoded for now. TODO: replace with #ifdef for different platforms.
 
@@ -16,10 +18,10 @@ struct transcript_cache_key {
 };
 
 /* Cache Constants */
-#define TRANSCRIBE_CACHE_DIRECTORY "./bin/cache/" // TODO: un-hardcode this.
 #define TRANSCRIBE_CACHE_TEXT "_text"
 #define TRANSCRIBE_CACHE_TIMESTAMPS "_time"
-const int CACHE_PATH_SIZE = sizeof(TRANSCRIBE_CACHE_DIRECTORY) + 32 + sizeof(TRANSCRIBE_CACHE_TEXT) + 1; // NOTE: hash value = 32, +1 byte for \0
+
+const int CACHE_PATH_SIZE = 5000; 
 
 /* struct to group the paths corresponding to a given transcription call. */
 struct transcript_location {

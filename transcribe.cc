@@ -30,8 +30,10 @@ const char* VOSK_SAMPLE_CODEC = "pcm_s16le";
 const int VOSK_CHANNEL_COUNT = 1;
 const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 
+const char *TRANSCRIBE_CACHE_DIRECTORY = ((getenv("MEDIAGREP_CACHE")) ? (getenv("MEDIAGREP_CACHE")) : (".cache/"));
 
 int transcribe(const char* model_path, const char* media_path, transcript_location* output) {
+
     /* BUILD CACHE KEY */
     transcript_cache_key this_call;
     {
@@ -53,6 +55,7 @@ int transcribe(const char* model_path, const char* media_path, transcript_locati
     /* SET OUTPUT CACHE PATHS */
     {
         meow_u128 hash = MeowHash(MeowDefaultSeed, sizeof(transcript_cache_key), &this_call);
+	
         auto create_path = [&](char* path, const char* extension) {
             sprintf(path, "%s%08x%08x%08x%08x%s", TRANSCRIBE_CACHE_DIRECTORY, MeowU32From(hash,3), MeowU32From(hash,2), MeowU32From(hash,1), MeowU32From(hash,0), extension);
         };
