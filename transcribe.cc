@@ -229,6 +229,10 @@ int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_fi
         float raw = atof(conversion_buffer);
         int total_seconds = int(raw); if (total_seconds > raw) total_seconds--; // fast replacement for floor()
 
+	/* UPDATE THE NUMBER OF SECONDS IN THE PROGRESS BAR STRUCT */
+	//	pbar->current = total_seconds;
+	
+
         auto get = [&total_seconds](int unit) {
             int out = total_seconds/unit;
             total_seconds = total_seconds % unit;

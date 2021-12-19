@@ -1,6 +1,8 @@
 /* Libs */
 #include "mediagrep.h"
 #include "transcribe.h"
+#include "include/termcolor.hpp"
+#include <dirent.h>
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
@@ -10,9 +12,9 @@
 #include <vector>
 #include <set>
 #include <iostream>
+#include <sstream>
 #include <filesystem>
 
-namespace fs = std::filesystem;
 using namespace std;
 
 struct parsed_args {
@@ -30,6 +32,7 @@ void search(int argc, const char** argv);
 void transcribe_only(int argc, const char** argv);
 void transcribe_to_files(int argc, const char** argv);
 vector<string> get_audio_files(vector<string>& files);
+int file_is_valid(const string& filename);
 
 int main(int argc, const char** argv) {
 
@@ -180,8 +183,6 @@ void transcribe_only(int argc, const char** argv) {
 }    
 
 void parse_args(int argc, const char** argv, struct parsed_args& pargs) {
-
-
     vector<string> args(argv, argv + argc);
     set<int> used_args{0}; 
     unordered_map<string, string>& valid_args = pargs.args;
@@ -221,12 +222,19 @@ void parse_args(int argc, const char** argv, struct parsed_args& pargs) {
     }
 }
 
+
+struct progress_bar {
+    int current;
+    int max;
+    
+};
+
 void search(int argc, const char** argv) {
 
     /* SET DEFAULT ARGS */
     unordered_map<string, string> valid_args({
 	    { "--before", "5"},
-	    { "--after", "5"},
+	    { "--after", "1"},
 	    { "--model", DEFAULT_MODEL},
 	});
 
@@ -259,7 +267,7 @@ void search(int argc, const char** argv) {
 
     vector<string> all_audio_files = get_audio_files(files);
     
-    for (string file : files) {
+    for (string file : all_audio_files) {
     
 	/* CREATE OR RETRIEVE TRANSCRIPT AND TIMESTAMPS */
 	transcript_location cache_paths;
@@ -312,11 +320,13 @@ void search(int argc, const char** argv) {
 	    string after_highlight = transcript.substr(found + search.length(),
 						       last_word_start - (found + search.length()) - 1);
 
-	    printf("[%s]:%s||%s||%s\n",
-		   timestamp.c_str(),
-		   before_highlight.c_str(),
-		   highlight.c_str(),
-		   after_highlight.c_str());
+	    std::cout << termcolor::green << file
+		      << termcolor::reset << ":"
+		      << termcolor::blue << "[" << timestamp << "]"
+		      << termcolor::reset << ":" << before_highlight
+		      << termcolor::red << highlight
+		      << termcolor::reset << after_highlight
+		      << '\n';
 	    
 	    findstart = found + 1;
 	}
@@ -331,27 +341,35 @@ vector<string> get_audio_files(vector<string>& files) {
     
     vector<string> output;
     for (string file : files) {
-	std::filesystem::path path(file);
-	std::error_code ec; // TODO handle errors
-
-	if (std::filesystem::is_directory(path, ec)) {
-	    // get all audio files out of it, deal with them
-	    for (const auto & file_it : std::filesystem::directory_iterator(file)) {
-		if (file_is_valid(file_it.path())) {
-		    output.push_back(file_it.path());
+	DIR *dir;
+	struct dirent *ent;
+	
+	if ((dir = opendir(file.c_str())) != NULL) {
+	    /* ADD EVERY AUDIO FILE IN DIRECTORY TO OUTPUT */
+	    while ((ent = readdir(dir)) != NULL) {
+		if (file_is_valid(string(ent->d_name))) {
+		    output.push_back(string(ent->d_name));
 		}
 	    }
-	    
-
-	} else if (fs::is_regular_file(path, ec) && file_is_valid(file)) {
-	    // add it to the output if it is an audio file
+	    closedir(dir);
+	} else if (file_is_valid(file)) {
 	    output.push_back(file);
+	} else {
+	    printf("Invalid audio file: %s\n", file.c_str());
 	}
     }
+    return output;
 }
 
-int file_is_valid(string filename) {
+int file_is_valid(const string& filename) {
+    DIR *dir;
 
+    /* DIRECTORIES ARE NOT VALID AUDIO FILES */
+    if ((dir = opendir(filename.c_str())) != NULL) {
+	return 0;
+    }
+
+    /* DETERMINE VALIDITY BASED ON FILE EXTENSION */
     istringstream iss(filename);
     vector<string> split_on_period;
     string tok;
