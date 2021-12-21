@@ -2,7 +2,8 @@
 #include <string>
 #include <cstring>
 #include <climits>
-
+#include <mutex>
+#include <iostream>
 #include "transcribe.h"
 
 /* Libs */
@@ -16,11 +17,14 @@ struct transcript_streams {
     FILE* timestamp;
 };
 
+std::mutex rip_lock;
+
 /* Subroutines */
 int make_cache_directory();
 int rip_audio_from_media(const char* input, char** output_path);
-int transcribe_audio(const char* model_path, const char* vosk_audio_path, transcript_location* cache_paths);
-int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files);
+int transcribe_audio(const char* model_path, const char* vosk_audio_path, transcript_location* cache_paths, struct progress_bar_wrapper* pbar);
+int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files, struct progress_bar_wrapper* pbar);
+
 
 /* Vosk Constants
  * Audio format used by vosk assumed to be single channel, mono audio, sampled at 16000hz, with signed 16 bit samples
@@ -30,9 +34,14 @@ const char* VOSK_SAMPLE_CODEC = "pcm_s16le";
 const int VOSK_CHANNEL_COUNT = 1;
 const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 
-const char *TRANSCRIBE_CACHE_DIRECTORY = ((getenv("MEDIAGREP_CACHE")) ? (getenv("MEDIAGREP_CACHE")) : (".cache/"));
 
-int transcribe(const char* model_path, const char* media_path, transcript_location* output) {
+/* TEMPORARY SOLUTION: DEFINED IN BOTH TRANSCRIBE.CC AND MEDIAGREP.CC */
+const char* TRANSCRIBE_CACHE_DIRECTORY = ((getenv("MEDIAGREP_CACHE")) ? (getenv("MEDIAGREP_CACHE")) : (".cache/"));
+
+int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar) {// , struct transcript_location* output,  struct progress_bar_wrapper* pbar) */ unsigned id)  {
+    
+    const char* model_path = model_str.c_str();
+    const char* media_path = media_str.c_str();
 
     /* BUILD CACHE KEY */
     transcript_cache_key this_call;
@@ -69,6 +78,9 @@ int transcribe(const char* model_path, const char* media_path, transcript_locati
         struct stat not_used;
         if ((stat(output->text, &not_used) == 0)
         && (stat(output->timestamp, &not_used)) == 0) {
+
+	    /* SET PROGRESS BAR FINISHED */
+	    pbar->current = pbar->total;
             return 0; // files exist, don't need to transcribe again.
         }
     }
@@ -76,13 +88,20 @@ int transcribe(const char* model_path, const char* media_path, transcript_locati
     /* RIP AND RESAMPLE AUDIO FROM MEDIA */
     char vosk_audio_path_[PATH_LENGTH];
     char* vosk_audio_path = vosk_audio_path_;
-    rip_audio_from_media(media_path, &vosk_audio_path); // TODO: don't ignore error code
 
-    transcribe_audio(model_path, vosk_audio_path, output); // TODO: don't ignore error code
+    rip_lock.lock();
+    rip_audio_from_media(media_path, &vosk_audio_path); // TODO: don't ignore error code
+    rip_lock.unlock();
+
+    transcribe_audio(model_path, vosk_audio_path, output, pbar); // TODO: don't ignore error code
 
     /* DELETE CONVERTED AUDIO */
     remove(vosk_audio_path);
 
+    /* SET PROGRESS BAR TO FINISHED */
+    pbar->current = pbar->total;
+    //    std::cout << "just set pbar to " << pbar->current << '\n';
+    
     return 0;
 }
 
@@ -110,16 +129,17 @@ int rip_audio_from_media(const char* input, char** output_path) {
      * platforms could be added once we have those figured out.
      */
     char command[64+PATH_LENGTH+PATH_LENGTH];
-    const char* ffmpeg_command_template = "ffmpeg%s -i %s -acodec %s -ac %d -ar %f %s";
+    // TODO: CROSS PLATFORM SUPPRESSION OF ERROR/OUTPUT
+    const char* ffmpeg_command_template = "ffmpeg%s -i %s -acodec %s -ac %d -ar %f %s > /dev/null 2>/dev/null";
     const char* ffmpeg_show_output = (SHOW_FFMPEG_OUTPUT)? "" : " -loglevel quiet";
     sprintf(command, ffmpeg_command_template, ffmpeg_show_output, input, VOSK_SAMPLING_RATE, VOSK_SAMPLE_CODEC, VOSK_CHANNEL_COUNT, *output_path);
-    printf("%s\n",command);
+    //    printf("%s\n",command);
     return system(command);
 }
 
 
 /* Transcribes contents of vosk_audio using the model, outputs text and timestamps to cache. */
-int transcribe_audio(const char* model_path, const char* vosk_audio_path, transcript_location* cache_paths) {
+int transcribe_audio(const char* model_path, const char* vosk_audio_path, transcript_location* cache_paths, struct progress_bar_wrapper* pbar) {
     /* OPEN TRANSCRIPTION STREAMS */
     transcript_streams cache_streams;
     cache_streams.text = fopen(cache_paths->text, "w");
@@ -145,7 +165,7 @@ int transcribe_audio(const char* model_path, const char* vosk_audio_path, transc
     /* GET OUTPUT FROM VOSK  */
     auto write_vosk_result = [&]() {
         const char* vosk_json = vosk_recognizer_final_result(recognizer);
-        write_vosk_json_to_files(vosk_json, &cache_streams);
+        write_vosk_json_to_files(vosk_json, &cache_streams, pbar);
     };
 
     while(true) {
@@ -195,7 +215,7 @@ int transcribe_audio(const char* model_path, const char* vosk_audio_path, transc
       }]
     }
 */
-int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files) {
+int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_files, struct progress_bar_wrapper* pbar) {
     const int VOSK_JSON_MAX_TOKENS = 1024;
     jsmntok_t tokens[VOSK_JSON_MAX_TOKENS];
 
@@ -230,8 +250,9 @@ int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_fi
         int total_seconds = int(raw); if (total_seconds > raw) total_seconds--; // fast replacement for floor()
 
 	/* UPDATE THE NUMBER OF SECONDS IN THE PROGRESS BAR STRUCT */
-	//	pbar->current = total_seconds;
 	
+	pbar->current = total_seconds;
+	//	std::cout << "just updated pbar to " << pbar->current << '\n';
 
         auto get = [&total_seconds](int unit) {
             int out = total_seconds/unit;

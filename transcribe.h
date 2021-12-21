@@ -29,7 +29,13 @@ struct transcript_location {
     char timestamp[CACHE_PATH_SIZE];
 };
 
+struct progress_bar_wrapper {
+    int current;
+    int total;
+    std::string filename;
+};
+
 /* Feeds media file to vosk and records output to returned files. */
-int transcribe(const char* model_path, const char* media_path, transcript_location* output);
+int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar);
 
 #endif /* MEDIAGREP_TRANSCRIBE_H */
