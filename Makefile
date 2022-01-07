@@ -9,7 +9,7 @@ BIN_DIR=bin
 INC_DIR=include
 
 # list all source files here
-FILES = mediagrep transcribe
+FILES = mediagrep transcribe threading
 SRC = ${FILES:%=$(SRC_DIR)/%.cc}
 OBJ = ${FILES:%=$(BIN_DIR)/%.o}
 

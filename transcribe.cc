@@ -7,7 +7,6 @@
 #include "transcribe.h"
 
 /* Libs */
-#include "include/meow_hash_x64_aesni.h"
 #include "include/vosk_api.h"
 #include "include/jsmn.h"
 
@@ -39,7 +38,13 @@ const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 const char* TRANSCRIBE_CACHE_DIRECTORY = ((getenv("MEDIAGREP_CACHE")) ? (getenv("MEDIAGREP_CACHE")) : (".cache/"));
 
 int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar) {// , struct transcript_location* output,  struct progress_bar_wrapper* pbar) */ unsigned id)  {
-    
+
+    // std::cout << "transcribing!" << '\n';
+    // std::cout << "model : " << model_str << '\n';
+    // std::cout << "media : " << media_str << '\n';
+    // std::cout << "output : " << output->text << " " << output->timestamp << '\n';
+    // std::cout << "pbar : " << pbar->filename << '\n';
+
     const char* model_path = model_str.c_str();
     const char* media_path = media_str.c_str();
 
@@ -55,7 +60,11 @@ int transcribe(const std::string &model_str, const std::string &media_str, struc
         if (stat(media_path, &media_info) != 0) {
             // Error: failed to stat media. TODO: handle
         }
-
+	
+	this_call.model_inode_str = std::to_string(static_cast<long int>(media_info.st_ino));
+	this_call.media_inode_str = std::to_string(static_cast<long int>(media_info.st_ino));
+	this_call.media_modified_str = std::to_string(static_cast<long int> (media_info.st_mtime));
+	
         this_call.model_inode = model_info.st_ino;
         this_call.media_inode = media_info.st_ino;
         this_call.media_modified = media_info.st_mtime;
@@ -63,11 +72,14 @@ int transcribe(const std::string &model_str, const std::string &media_str, struc
 
     /* SET OUTPUT CACHE PATHS */
     {
-        meow_u128 hash = MeowHash(MeowDefaultSeed, sizeof(transcript_cache_key), &this_call);
 	
         auto create_path = [&](char* path, const char* extension) {
-            sprintf(path, "%s%08x%08x%08x%08x%s", TRANSCRIBE_CACHE_DIRECTORY, MeowU32From(hash,3), MeowU32From(hash,2), MeowU32From(hash,1), MeowU32From(hash,0), extension);
-        };
+	    sprintf(path, "%s%zu%s",
+		    TRANSCRIBE_CACHE_DIRECTORY,
+		    std::hash<std::string>{}(this_call.media_inode_str + this_call.model_inode_str + this_call.media_modified_str),
+		    extension);
+	};
+
         create_path(output->text, TRANSCRIBE_CACHE_TEXT);
         create_path(output->timestamp, TRANSCRIBE_CACHE_TIMESTAMPS);
     }

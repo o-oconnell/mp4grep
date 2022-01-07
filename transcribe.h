@@ -15,6 +15,10 @@ struct transcript_cache_key {
     ino_t model_inode;
     ino_t media_inode;
     time_t media_modified;
+
+    std::string model_inode_str;
+    std::string media_inode_str;
+    std::string media_modified_str;
 };
 
 /* Cache Constants */
@@ -32,7 +36,9 @@ struct transcript_location {
 struct progress_bar_wrapper {
     int current;
     int total;
+    
     std::string filename;
+    int index_into_vector_transcript_location;
 };
 
 /* Feeds media file to vosk and records output to returned files. */
