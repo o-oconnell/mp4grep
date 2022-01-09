@@ -37,14 +37,8 @@ const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 /* TEMPORARY SOLUTION: DEFINED IN BOTH TRANSCRIBE.CC AND MEDIAGREP.CC */
 const char* TRANSCRIBE_CACHE_DIRECTORY = ((getenv("MEDIAGREP_CACHE")) ? (getenv("MEDIAGREP_CACHE")) : (".cache/"));
 
-int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar) {// , struct transcript_location* output,  struct progress_bar_wrapper* pbar) */ unsigned id)  {
-
-    // std::cout << "transcribing!" << '\n';
-    // std::cout << "model : " << model_str << '\n';
-    // std::cout << "media : " << media_str << '\n';
-    // std::cout << "output : " << output->text << " " << output->timestamp << '\n';
-    // std::cout << "pbar : " << pbar->filename << '\n';
-
+int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar) {
+    
     const char* model_path = model_str.c_str();
     const char* media_path = media_str.c_str();
 
@@ -72,7 +66,6 @@ int transcribe(const std::string &model_str, const std::string &media_str, struc
 
     /* SET OUTPUT CACHE PATHS */
     {
-	
         auto create_path = [&](char* path, const char* extension) {
 	    sprintf(path, "%s%zu%s",
 		    TRANSCRIBE_CACHE_DIRECTORY,
@@ -112,7 +105,6 @@ int transcribe(const std::string &model_str, const std::string &media_str, struc
 
     /* SET PROGRESS BAR TO FINISHED */
     pbar->current = pbar->total;
-    //    std::cout << "just set pbar to " << pbar->current << '\n';
     
     return 0;
 }
@@ -134,7 +126,13 @@ int make_cache_directory() {
 /* Gets the audio from the input media file, and formats it correctly for vosk. Returns success status. */
 int rip_audio_from_media(const char* input, char** output_path) {
     /* SET PATH OF CONVERTED FILE */
-    sprintf(*output_path, "%s%s", input, "_converted.wav");
+    std::string s(input);
+    std::size_t last_slash = s.find_last_of("/");
+    
+    sprintf(*output_path, "%s%s%s",
+	    TRANSCRIBE_CACHE_DIRECTORY,
+	    (last_slash < (s.length() - 1) ? s.substr(last_slash + 1).c_str() : s.c_str()),
+	    "_converted.wav");
 
     /* CALL FFMPEG WITH CORRECT PARAMETERS FOR VOSK
      * Note: This code is not very portable. An #ifdef solution for different
@@ -145,7 +143,7 @@ int rip_audio_from_media(const char* input, char** output_path) {
     const char* ffmpeg_command_template = "ffmpeg%s -i %s -acodec %s -ac %d -ar %f %s > /dev/null 2>/dev/null";
     const char* ffmpeg_show_output = (SHOW_FFMPEG_OUTPUT)? "" : " -loglevel quiet";
     sprintf(command, ffmpeg_command_template, ffmpeg_show_output, input, VOSK_SAMPLING_RATE, VOSK_SAMPLE_CODEC, VOSK_CHANNEL_COUNT, *output_path);
-    //    printf("%s\n",command);
+    printf("%s\n",command);
     return system(command);
 }
 
@@ -258,13 +256,11 @@ int write_vosk_json_to_files(const char* vosk_json, transcript_streams* cache_fi
         const int HOUR = 60*MINUTE;
 
         /* GET TIME UNITS FROM JSON STRING */
+	/* UPDATE THE NUMBER OF SECONDS IN THE PROGRESS BAR STRUCT */
         float raw = atof(conversion_buffer);
         int total_seconds = int(raw); if (total_seconds > raw) total_seconds--; // fast replacement for floor()
 
-	/* UPDATE THE NUMBER OF SECONDS IN THE PROGRESS BAR STRUCT */
-	
 	pbar->current = total_seconds;
-	//	std::cout << "just updated pbar to " << pbar->current << '\n';
 
         auto get = [&total_seconds](int unit) {
             int out = total_seconds/unit;

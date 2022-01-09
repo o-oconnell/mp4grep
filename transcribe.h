@@ -44,4 +44,6 @@ struct progress_bar_wrapper {
 /* Feeds media file to vosk and records output to returned files. */
 int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar);
 
+
+
 #endif /* MEDIAGREP_TRANSCRIBE_H */

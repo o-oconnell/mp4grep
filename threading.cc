@@ -60,7 +60,7 @@ public:
 class thread_pool {
 
     std::atomic<bool> done;
-    
+
     threadsafe_queue<std::function<void()> > work_queue;
     std::vector<std::thread> threads;
     join_threads joiner;

@@ -45,6 +45,7 @@ void handle_parsed_params(struct workflow& this_workflow);
 void extract_files_from_directories(struct workflow& this_workflow);
 void transcribe_all_files(struct workflow& this_workflow);
 void search(struct workflow& this_workflow, transcript_location cache_paths, string filename);
+int clear_cache();
 
 enum workflow_v { TRANSCRIBE_ONLY, TRANSCRIBE_TO_FILES, SEARCH };
 
@@ -90,7 +91,7 @@ int main(int argc, const char** argv) {
 	exit(0);
     } else if (option_exists("--clear-cache")) {
 	printf("Clearing cache\n");
-	// clear_cache();
+	clear_cache();
 	exit(0);
     } else if (option_exists("--transcribe")) { 
 	this_workflow.workflow_variant = TRANSCRIBE_ONLY;
@@ -118,9 +119,15 @@ int main(int argc, const char** argv) {
     return 0;
 }
 
+/* Make directory for cache if it doesnt exist. */
+int clear_cache() {
+    const char* clear_cache_command_template = "rm -ir %s";
+    char command[16+PATH_LENGTH];
+    sprintf(command, clear_cache_command_template, TRANSCRIBE_CACHE_DIRECTORY_MG);
+    return system(command);
+}
 
 void handle_parsed_params(struct workflow& this_workflow) {
-    
     switch (this_workflow.workflow_variant) {
     case(TRANSCRIBE_ONLY):
 	/* MUST HAVE AT LEAST ONE FILE TO TRANSCRIBE */
@@ -188,18 +195,28 @@ void transcribe_all_files(struct workflow& this_workflow) {
 	filenames_chars.push_back(str.c_str());
     }
     
-    vector<thread> all_threads;
-    
     /* CREATE ALL OF THE THREADS */
-    thread_pool pool;
+    vector<thread> all_threads;
+    std::unique_ptr<thread_pool> pool;
+
+    unsigned const max_concurrency = std::thread::hardware_concurrency();
+    unsigned const num_files = this_workflow.filenames.size();
+
+    if (num_files >= max_concurrency) {
+	pool = std::unique_ptr<thread_pool>(new thread_pool());
+    }
+    
     for (unsigned i = 0; i < this_workflow.filenames.size(); ++i) {
 	
 	/* GET THE TOTAL DURATION OF THE FILE */
 	int duration = 0;
 	{
+	    std::string s(this_workflow.filenames[i]);
+	    std::size_t last_slash = s.find_last_of("/");
+	    
 	    string duration_tmpfile = string(TRANSCRIBE_CACHE_DIRECTORY_MG)
 		+ "/"
-		+ this_workflow.filenames[i]
+		+ (last_slash < (s.length() - 1) ? s.substr(last_slash + 1).c_str() : s.c_str())
 		+ "_duration_tmp";
 	    
 	    string duration_str = "ffprobe -i "
@@ -220,34 +237,23 @@ void transcribe_all_files(struct workflow& this_workflow) {
 	wrappers[i].filename = this_workflow.filenames[i];
 	wrappers[i].index_into_vector_transcript_location = i;
 	
-	// all_threads.emplace_back(transcribe,
-	// 			 std::cref(this_workflow.model),
-	// 			 std::cref(this_workflow.filenames[i]),
-	// 			 &locations[i],
-	// 			 &wrappers[i]
-	// 			 );
-
-
-	std::function<void()> bound_transcribe =
-	    std::bind(transcribe,
-		      std::cref(this_workflow.model),
-		      std::cref(this_workflow.filenames[i]),
-		      &locations[i],
-		      &wrappers[i]);
+	if (num_files >= max_concurrency) {
+	    std::function<void()> bound_transcribe =
+		std::bind(transcribe,
+			  std::cref(this_workflow.model),
+			  std::cref(this_workflow.filenames[i]),
+			  &locations[i],
+			  &wrappers[i]);
 	
-	// std::function<void()> lambda = [&]() {
-
-
-
-
-	//     transcribe(std::cref(this_workflow.model),
-	// 	       std::cref(this_workflow.filenames[i]),
-	// 	       &locations[i],
-	// 	       &wrappers[i]);
-	//     //	    printf("this is my happy and free void function!");
-	// };
-
-	pool.submit(bound_transcribe);
+	    pool->submit(bound_transcribe);
+	} else {
+	    all_threads.emplace_back(transcribe,
+				     std::cref(this_workflow.model),
+				     std::cref(this_workflow.filenames[i]),
+				     &locations[i],
+				     &wrappers[i]
+				     );
+	}
     }
 
     auto max_progress_first = [](progress_bar_wrapper* a, progress_bar_wrapper* b) {
@@ -300,10 +306,12 @@ void transcribe_all_files(struct workflow& this_workflow) {
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    
-    // for (auto &thrd : all_threads) {
-    //  	thrd.join();
-    // }
+
+    if (num_files < max_concurrency) {
+	for (auto &thrd : all_threads) {
+	    thrd.join();
+	}
+    }
 }
 
 void parse_args(int argc, const char** argv, struct parsed_args& pargs) {
