@@ -1,21 +1,6 @@
-# Mp4Grep Gitignore #######################
-## Java ##
-*.class
+models/
+bin/
+obj/
+test_files/
 
-### Packages ###
-*.jar
-
-## Gradle ##
-.gradle
-/build/
-!gradle-wrapper.jar
-
-## IntelliJ ##
-.idea
-
-## Other ##
-# Ignore MacOS files
-.DS_Store
-# Ignore temp fils
-*.swp
-##########################################
+TODO
