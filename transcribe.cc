@@ -143,7 +143,7 @@ int rip_audio_from_media(const char* input, char** output_path) {
     const char* ffmpeg_command_template = "ffmpeg%s -i %s -acodec %s -ac %d -ar %f %s > /dev/null 2>/dev/null";
     const char* ffmpeg_show_output = (SHOW_FFMPEG_OUTPUT)? "" : " -loglevel quiet";
     sprintf(command, ffmpeg_command_template, ffmpeg_show_output, input, VOSK_SAMPLING_RATE, VOSK_SAMPLE_CODEC, VOSK_CHANNEL_COUNT, *output_path);
-    printf("%s\n",command);
+    //    printf("%s\n",command);
     return system(command);
 }
 

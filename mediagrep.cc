@@ -79,6 +79,8 @@ struct workflow {
 };
 
 int main(int argc, const char** argv) {
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     auto option_exists = [&](const std::string& option) {
 	return std::find(argv, argv + argc, option) != (argv + argc);
     };
@@ -204,6 +206,8 @@ void transcribe_all_files(struct workflow& this_workflow) {
 
     if (num_files >= max_concurrency) {
 	pool = std::unique_ptr<thread_pool>(new thread_pool());
+	std::cout << "num files " << num_files << '\n';
+	std::cout << "max concurrency " << max_concurrency << '\n';
     }
     
     for (unsigned i = 0; i < this_workflow.filenames.size(); ++i) {
@@ -219,6 +223,7 @@ void transcribe_all_files(struct workflow& this_workflow) {
 		+ (last_slash < (s.length() - 1) ? s.substr(last_slash + 1).c_str() : s.c_str())
 		+ "_duration_tmp";
 	    
+	    /* IF CACHE DIR DOESN'T EXIST, MAKE IT */
 	    string duration_str = "ffprobe -i "
 		+ this_workflow.filenames[i]
 		+" -show_entries format=duration -v quiet -of csv=\"p=0\" " + ">" + duration_tmpfile;
@@ -244,7 +249,9 @@ void transcribe_all_files(struct workflow& this_workflow) {
 			  std::cref(this_workflow.filenames[i]),
 			  &locations[i],
 			  &wrappers[i]);
-	
+
+
+	    std::cout << "submitted "  << this_workflow.filenames[i] << '\n';
 	    pool->submit(bound_transcribe);
 	} else {
 	    all_threads.emplace_back(transcribe,
@@ -265,6 +272,7 @@ void transcribe_all_files(struct workflow& this_workflow) {
     for (auto &entry : wrappers) {
 	pq.push(&entry);
     }
+
 
     while (!pq.empty()) {
 
@@ -306,6 +314,7 @@ void transcribe_all_files(struct workflow& this_workflow) {
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
 
     if (num_files < max_concurrency) {
 	for (auto &thrd : all_threads) {
@@ -365,7 +374,7 @@ vector<string> get_audio_files(vector<string>& files) {
 	    /* ADD EVERY AUDIO FILE IN DIRECTORY TO OUTPUT */
 	    while ((ent = readdir(dir)) != NULL) {
 		if (file_is_valid(string(ent->d_name))) {
-		    output.push_back(string(ent->d_name));
+		    output.push_back(file +string(ent->d_name));
 		}
 	    }
 	    closedir(dir);

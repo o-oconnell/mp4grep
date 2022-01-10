@@ -34,9 +34,8 @@ environment: config.mk
 	@echo ""
 
 # override for transcribe.cc because it needs ffmpeg headers included during compile
-MEOW_FLAGS= -O3 -mavx2 -maes
 $(BIN_DIR)/transcribe.o: $(SRC_DIR)/transcribe.cc environment dirs
-	$(CXX) $(CXXFLAGS) $(IFLAGS) $(MEOW_FLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(IFLAGS) -c $< -o $@
 
 
 # compile object files with configuration from config.mk
