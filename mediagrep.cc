@@ -80,7 +80,6 @@ struct workflow {
 
 int main(int argc, const char** argv) {
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
     auto option_exists = [&](const std::string& option) {
 	return std::find(argv, argv + argc, option) != (argv + argc);
     };
