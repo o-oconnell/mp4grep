@@ -4,36 +4,69 @@
 #include <caml/fail.h>
 #include <stdio.h>
 
-CAMLprim value callable_from_ocaml(value int_v) {
-    vosk_set_log_level(Int_val(int_v));
-    FILE *wavin;
+VoskModel *model;
+CAMLprim value make_model(value str_model) {
+    printf("The model passed was %s\n", String_val(str_model));
+    model = vosk_model_new(String_val(str_model));
+    return Val_int(0);
+}
+
+CAMLprim value delete_model(value int_v) {
+    vosk_model_free(model);
+    return Val_int(0);
+}
+
+CAMLprim value transcribe(value audio,
+			  value transcript,
+			  value total_duration,
+			  value current_duration) {
+
+    FILE *wavin, *output;
     char buf[3200];
     int nread, final;
 
-    VoskModel *model = vosk_model_new("/home/ooc/mp4grep/model");
     VoskRecognizer *recognizer = vosk_recognizer_new(model, 16000.0);
+    
+    wavin = fopen(String_val(audio), "rb");
+    output = fopen(String_val(transcript), "w");
 
-    wavin = fopen("harvard.wav", "rb");
+    fseek(wavin, 0, SEEK_END);
+    int size = ftell(wavin);
+    FILE *total_dur = fopen(String_val(total_duration), "w");
+    fprintf(total_dur, "%d\n", size);
+    fclose(total_dur);
+
+    FILE *current_dur = fopen(String_val(current_duration), "w");
+
+    fseek(wavin, 0, SEEK_SET);
+
     fseek(wavin, 44, SEEK_SET);
     while (!feof(wavin)) {
+	
          nread = fread(buf, 1, sizeof(buf), wavin);
          final = vosk_recognizer_accept_waveform(recognizer, buf, nread);
          if (final) {
-             printf("%s\n", vosk_recognizer_result(recognizer));
+             fprintf(output, "%s\n", vosk_recognizer_result(recognizer));
          } else {
-             printf("%s\n", vosk_recognizer_partial_result(recognizer));
+             fprintf(output, "%s\n", vosk_recognizer_partial_result(recognizer));
          }
+
+	 fseek(current_dur, 0, SEEK_SET);
+	 fprintf(current_dur, "%ld\n", ftell(wavin));
     }
-    printf("%s\n", vosk_recognizer_final_result(recognizer));
+    fprintf(output, "%s\n", vosk_recognizer_final_result(recognizer));
 
+    fseek(current_dur, 0, SEEK_SET);
+    fprintf(current_dur, "%s\n", "DONE");
+    
     vosk_recognizer_free(recognizer);
-    vosk_model_free(model);
+
     fclose(wavin);
-
-    printf("just set the vosk log level!\n");
-    return Val_int(12);
+    fclose(output);
+    fclose(current_dur);
+    
+    return Val_int(1);
 }
-
 /* int main() { */
 /*     FILE *wavin; */
 /*     char buf[3200]; */

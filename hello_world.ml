@@ -1,2 +1,4 @@
-external set_vosk_loglevel : int -> int = "callable_from_ocaml";;
+external transcribe : string -> string -> string -> string -> int = "transcribe";;
+external make_model : string -> int = "make_model";;
+external delete_model : int -> int = "delete_model";;
 print_endline "hello, world"
