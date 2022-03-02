@@ -16,6 +16,16 @@ CAMLprim value delete_model(value int_v) {
     return Val_int(0);
 }
 
+CAMLprim value total_duration(value audio_file, value duration_file) {
+    FILE* wavin = fopen(String_val(audio_file), "rb");
+    fseek(wavin, 0, SEEK_END);
+    int size = ftell(wavin);
+    FILE *total_dur = fopen(String_val(duration_file), "w");
+    fprintf(total_dur, "%d\n", size);
+    fclose(total_dur);
+    return Val_int(0);
+}
+
 CAMLprim value transcribe(value audio,
 			  value transcript,
 			  value total_duration,
@@ -29,12 +39,6 @@ CAMLprim value transcribe(value audio,
     
     wavin = fopen(String_val(audio), "rb");
     output = fopen(String_val(transcript), "w");
-
-    fseek(wavin, 0, SEEK_END);
-    int size = ftell(wavin);
-    FILE *total_dur = fopen(String_val(total_duration), "w");
-    fprintf(total_dur, "%d\n", size);
-    fclose(total_dur);
 
     FILE *current_dur = fopen(String_val(current_duration), "w");
 
