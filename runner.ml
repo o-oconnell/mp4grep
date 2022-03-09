@@ -20,121 +20,115 @@ let cpu_count () =
   | End_of_file | Unix.Unix_error (_, _, _) -> 1
 
 
+let get_cache_file (prefix : string) (filename : string) : string =
+  let stat_t = Unix.stat filename in
+  let hash_int = Hashtbl.hash (stat_t.st_ino) in
+  let cache_file = Filename.concat cCACHE_DIR (prefix^(string_of_int hash_int)) in
+  cache_file
+
+let get_transcript (filename : string) : string =
+  get_cache_file "transcript" filename
+
+let get_timestamp (filename : string) : string =
+  get_cache_file "timestamp" filename
+
+let get_current_duration (filename : string) : string =
+  get_cache_file "current" filename
+
+let get_total_duration_file (filename : string) : string =
+  get_cache_file "total" filename
+
 (* THIS IS CURRENTLY NOT MEMOIZING PROPERLY *)
-let get_total_duration (num_audio_files : int) =
-  let cache = Hashtbl.create 10 in
-  let rec sum_files (cur_suffix : int) (sum : int) =
-    if cur_suffix = 0 then sum else begin 
-      let itotal = open_in ("total_duration"^(string_of_int cur_suffix)) in
+let get_max_duration_sum (all_input_audio : string list) =
+  let rec sum_files (xs : string list) (sum : int) =
+    match xs with
+    | [] -> sum
+    | hd :: tl -> let itotal = open_in (get_total_duration_file hd) in
       let total_dur = input_line itotal in
       seek_in itotal 0;
       close_in itotal;
-      sum_files (cur_suffix - 1) (sum + (int_of_string total_dur))
-    end in
-  try Hashtbl.find cache num_audio_files
-  with Not_found -> begin
-      let result = sum_files num_audio_files 0 in
-      Hashtbl.add cache num_audio_files result; result
-    end
+      sum_files (tl) (sum + (int_of_string total_dur))
+  in
+  sum_files all_input_audio 0
 
+let get_current_duration_sum (all_input_audio : string list) = 
+  let rec sum_files (xs : string list) (sum : int) =
+    match xs with
+    | [] -> sum
+    | hd :: tl -> let itotal = open_in (get_current_duration hd) in
+      let total_dur = input_line itotal in
+      seek_in itotal 0;
+      close_in itotal;
+      sum_files (tl) (sum + (int_of_string total_dur))
+  in
+  sum_files all_input_audio 0
 
-let transcribe_and_track_progress (filename_or_file_count, file_id_or_flag) : int =
-  if (file_id_or_flag = -1) then begin
+type transcribe_info =
+  { filename : string; }
+
+type progress_info =
+  { all_filenames : (string list); }
     
-    (* Wait until every file has had its total duration computed *)
-    let all_file_durations_computed = ref false in
-    let file_count = int_of_string filename_or_file_count in
-    while (!all_file_durations_computed = false) do
-      all_file_durations_computed := true;
-      for i = 1 to file_count do
-        let itotal = open_in ("total_duration"^(string_of_int i)) in
-        let line = input_line itotal in
-        seek_in itotal 0;
-        close_in itotal;
-        
-        (* Strange semantics for if with no else *)
-        if (int_of_string line) = 0 then begin
-          Printf.printf "%s %s\n" "not done for" ("total_duration"^(string_of_int i));
-          let set_false () =
-            all_file_durations_computed := false; ()
-          in
-          set_false ();
-        end
-        
-      done;
-      sleep 2;
-      print_endline "still not done";
-      Printf.printf "%s %b" "value of bool" !all_file_durations_computed
-    done;
+type transcribable_or_progress_bar =
+  | Transcribable of transcribe_info
+  | Progress_bar of progress_info
 
+let is_cached (filename : string) =
+  try Sys.file_exists (get_transcript filename)
+  with
+  | Sys_error(e) -> false
+    
+
+let transcribe_and_track_progress (inp : transcribable_or_progress_bar) : int = 
+  (* PROGRESS BAR THREAD *)
+  
+  match inp with
+  | Progress_bar p ->
     let current_progress = ref 0 in
-    let total_duration = get_total_duration (int_of_string filename_or_file_count) in
-    Printf.printf "%s %d" "TOTAL DURATION" total_duration;
-    print_endline "!";
+    let total_duration = get_max_duration_sum p.all_filenames in
+    (* Printf.printf "%s %d" "TOTAL DURATION" total_duration; *)
+    (* print_endline "!"; *)
+    
     while (!current_progress < total_duration) do
-      let num_transcripts = int_of_string filename_or_file_count in
-      let is_an_int (input : string) : bool =
-        Str.string_match (Str.regexp "[0-9]+$") input 0
-      in
-      let rec sum_durations (transcript_num : int) (sum : int) : int =
-        if transcript_num = 0 then 
-          sum
-        else begin
-          if (Sys.file_exists ("current_duration"^(string_of_int transcript_num)) &&
-              Sys.file_exists ("total_duration"^(string_of_int transcript_num))) then
-            
-            let icurrent = open_in ("current_duration"^(string_of_int transcript_num)) in
-            let line = input_line icurrent in
-            seek_in icurrent 0;
-            close_in icurrent;
-            
-            if (is_an_int line) = true then 
-              sum_durations (transcript_num - 1) (sum + (int_of_string line))
-            else begin
-              let itotal = open_in ("total_duration"^(string_of_int transcript_num)) in
-              let total_dur = input_line itotal in
-              seek_in itotal 0;
-              close_in itotal;
-              sum_durations (transcript_num - 1) (sum + (int_of_string total_dur))
-            end
-          else 
-            sum_durations (transcript_num - 1) (sum + 0)
-        end
-      in
       sleep 2;
-      current_progress := (sum_durations num_transcripts 0);
-      Printf.printf "%s %d" "Current progress is" (sum_durations num_transcripts 0);
-      Printf.printf "%s %d" "Total duration is " (get_total_duration 10);
-      Printf.printf "Percentage completion is %f" ((float_of_int !current_progress) /. (float_of_int total_duration));
+      current_progress := (get_current_duration_sum p.all_filenames);
+      (* Printf.printf "%s %d" "Current progress is" (get_current_duration_sum p.all_filenames); *)
+      (* Printf.printf "%s %d" "Total duration is " (get_max_duration_sum p.all_filenames); *)
+
+      Printf.printf "Percent complete: %f\r" ((float_of_int !current_progress) /. (float_of_int total_duration));
       print_endline " ";
     done;
+
     let x = 0 in x
-  end
-  else begin
+      
+  | Transcribable t ->
+    Printf.printf "%s %s" "transcribing" t.filename;
+    
     let x = transcribe
-        filename_or_file_count
-        ("transcript" ^ (string_of_int file_id_or_flag))
-        ("total_duration" ^ (string_of_int file_id_or_flag))
-        ("current_duration" ^ (string_of_int file_id_or_flag))
+        t.filename
+        (get_transcript t.filename)
+        (get_timestamp t.filename)
+        (get_total_duration_file t.filename)
+        (get_current_duration t.filename)
     in x
-  end
+    
 
-let rec make_all_tempfiles (num_files : int) : unit = 
-  if num_files = 0 then () else
-    let ocurrent = open_out ("current_duration"^(string_of_int num_files)) in
-    (* let ototal = open_out ("total_duration"^(string_of_int num_files)) in *)
-    Printf.fprintf ocurrent "%s" "0";
-    (* Printf.fprintf ototal "%s" "0"; *)
-    close_out ocurrent;
-    (* close_out ototal; *)
-    make_all_tempfiles (num_files - 1); ()
-
-
-let rec save_durations_to_files (audio_file_inputs : string list) (id : int) =
-  match audio_file_inputs with
+let rec make_current_duration_files (input_audio : string list) : unit =
+  match input_audio with
   | [] -> ()
-  | hd :: tl -> let x = total_duration hd ("total_duration"^(string_of_int id)) in save_durations_to_files tl (id + 1);
-    ()
+  | hd :: tl -> 
+    let ocurrent = open_out (get_current_duration hd) in
+    Printf.fprintf ocurrent "%s" "0";
+    close_out ocurrent;
+    make_current_duration_files tl
+
+let rec make_total_duration_files (input_audio : string list) =
+  match input_audio with
+  | [] -> ()
+  | hd :: tl ->
+    let total_dur_file = get_total_duration_file hd in
+    let x = total_duration hd total_dur_file in
+    make_total_duration_files tl
 
 let () =
   let num_cpu = cpu_count () in
@@ -142,19 +136,39 @@ let () =
   let rec make_list_of_filenames (cur : int) (xs : (string * int) list)  =
     if cur = 0 then xs else make_list_of_filenames (cur - 1) (("harvard.wav", cur) :: xs)
   in
-  let filenames = ["Week1_second_class.mp4.wav";  "Week3_first_class.mp4.wav";  "Week4_second_class.mp4.wav";  "Week6_first_class.mp4.wav";   "Week7_second_class.mp4.wav"; "Week1_third_class.mp4.wav"; "Week3_second_class.mp4.wav"; "Week5_first_class.mp4.wav"; "Week6_second_class.mp4.wav"; "Week7_third_class.mp4.wav"; "Week2_first_class.mp4.wav"; "Week3_third_class.mp4.wav"; "Week5_second_class.mp4.wav"; "Week6_third_class.mp4.wav"; "Week8_first_class.mp4.wav"; "Week2_third_class.mp4.wav"; "Week4_first_class.mp4.wav"; "Week5_third_class.mp4.wav"; "Week7_first_class.mp4.wav"] in
-  let rec make_tuples_from_filenames (sl : string list) (cur : int) : (string * int) list =
-    match sl with
+  let filenames = ["harvard.wav"] in
+  
+  (* CHECK FOR CACHED FILES, DO NOT ATTEMPT TO TRANSCRIBE THEM *)
+  let rec avoid_transcribed_files (filenames : string list) : string list =
+    match filenames with
     | [] -> []
-    | hd :: tl -> (hd, cur) :: make_tuples_from_filenames tl (cur + 1)
+    | hd :: tl ->
+      if is_cached hd then begin
+        Printf.printf "%s %s" hd "is cached, not transcribing it.";
+        avoid_transcribed_files tl
+      end
+      
+      else
+        hd :: avoid_transcribed_files tl
   in
+  let filenames = avoid_transcribed_files filenames in
 
-  let () = save_durations_to_files filenames 1 in(* careful! this must be called before prepending below *)
-  let filenames = make_tuples_from_filenames filenames 1 in
-  make_all_tempfiles (List.length filenames); (* careful! this must be called before prepending below *)
-  let filenames = ((string_of_int (List.length filenames)), -1) :: filenames in
+  (* CREATE DURATION FILES. MUST CALL PRIOR TO TRANSCRIBING *)
+  make_total_duration_files filenames;
+  make_current_duration_files (filenames); 
+
+  let rec make_par_list (xs : string list) : transcribable_or_progress_bar list =
+    match xs with
+    | [] -> []
+    | hd :: tl -> Transcribable ({ filename = hd }) :: make_par_list tl
+  in
+  
+  let transcribes = Progress_bar ({all_filenames = filenames; }) :: make_par_list filenames  in
+  
+  (* TRANSCRIBE *)
   let num = make_model "/home/ooc/mp4grep/model" in
-  let int_list = parmap ~ncores:num_cores transcribe_and_track_progress (L filenames) in
-  let another_num = delete_model 1 in ()
+  let int_list = parmap ~ncores:num_cores transcribe_and_track_progress (L transcribes) in
+  let another_num = delete_model 1 in
+  ()
                                                               
 
