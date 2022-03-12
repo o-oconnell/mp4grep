@@ -148,7 +148,7 @@ int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const ch
                 for (int k = 0, field = 0; field < tokens[i + 1 + j].size; k++) {
                     if (jsoneq(vosk_json, tokens, i + 1 + j + 1 + k, "word")) {
                         jsmntok_t* word_token = &tokens[i + 1 + j + 1 + k + 1];
-			const char* WRITE_FORMAT = "%.*s\n";
+			const char* WRITE_FORMAT = "%.*s";
 			fprintf(text, WRITE_FORMAT, word_token->end-word_token->start, vosk_json+word_token->start);
                     }
 
@@ -180,9 +180,9 @@ int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const ch
 
 			    /* FORMAT AS TIMESTAMP */
 			    if (hours > 0) {
-				fprintf(timestamp, "%.2i:%.2i:%.2i\n", hours, minutes, seconds);
+				fprintf(text, "[%.2i:%.2i:%.2i]", hours, minutes, seconds);
 			    } else {
-				fprintf(timestamp, "%.2i:%.2i\n", minutes, seconds);
+				fprintf(text, "[%.2i:%.2i]", minutes, seconds);
 			    }
 
 

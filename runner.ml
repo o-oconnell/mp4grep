@@ -8,6 +8,9 @@ let cCACHE_DIR = try getenv "MP4GREP_CACHE" with
 let cMODEL_DIR = try getenv "MP4GREP_MODEL" with
     Not_found -> raise (Sys_error "Warning: MP4GREP_MODEL unset")
 
+let cTIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
+let cTRAILING_TIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
+
 let cpu_count () = 
   try match Sys.os_type with 
   | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS") 
@@ -84,23 +87,29 @@ let transcribe_and_track_progress (inp : transcribable_or_progress_bar) : int =
   
   match inp with
   | Progress_bar p ->
+    
+    
     let current_progress = ref 0 in
     let total_duration = get_max_duration_sum p.all_filenames in
     (* Printf.printf "%s %d" "TOTAL DURATION" total_duration; *)
     (* print_endline "!"; *)
     
-    while (!current_progress < total_duration) do
-      sleep 2;
-      current_progress := (get_current_duration_sum p.all_filenames);
-      (* Printf.printf "%s %d" "Current progress is" (get_current_duration_sum p.all_filenames); *)
-      (* Printf.printf "%s %d" "Total duration is " (get_max_duration_sum p.all_filenames); *)
+        while (!current_progress < total_duration) do
+          sleep 2;
+          current_progress := (get_current_duration_sum p.all_filenames);
+          (* Printf.printf "%s %d" "Current progress is" (get_current_duration_sum p.all_filenames); *)
+          (* Printf.printf "%s %d" "Total duration is " (get_max_duration_sum p.all_filenames); *)
 
-      Printf.printf "Percent complete: %f\r" ((float_of_int !current_progress) /. (float_of_int total_duration));
-      print_endline " ";
-    done;
+          let percent = (float_of_int !current_progress) /. (float_of_int total_duration) in
+          let percent = 100. *. percent in
+                                                            
 
+
+          Printf.printf "%s %f" "percent complete:" percent;
+          print_endline "";
+        done;
+        
     let x = 0 in x
-      
   | Transcribable t ->
     Printf.printf "%s %s" "transcribing" t.filename;
     
@@ -131,12 +140,24 @@ let rec make_total_duration_files (input_audio : string list) =
     make_total_duration_files tl
 
 let () =
+
+  let input_files = ref [] in
+  let anon_fun filename =
+    input_files := filename :: !input_files
+  in
+  Arg.parse [] anon_fun "usage message\n";
+  let input_files = List.rev !input_files in
+
+  let search_string, filenames =
+    if (List.length input_files) > 1 then
+      match input_files with
+      | [] -> ("", []) (* should not happen *)
+      | hd :: tl -> ((List.nth input_files 0), tl)
+    else 
+      raise (Sys_error "Provide search string and at least one filename");
+  in
   let num_cpu = cpu_count () in
   let num_cores = num_cpu - 1 in (* one parent *)
-  let rec make_list_of_filenames (cur : int) (xs : (string * int) list)  =
-    if cur = 0 then xs else make_list_of_filenames (cur - 1) (("harvard.wav", cur) :: xs)
-  in
-  let filenames = ["harvard.wav"] in
   
   (* CHECK FOR CACHED FILES, DO NOT ATTEMPT TO TRANSCRIBE THEM *)
   let rec avoid_transcribed_files (filenames : string list) : string list =
@@ -144,7 +165,7 @@ let () =
     | [] -> []
     | hd :: tl ->
       if is_cached hd then begin
-        Printf.printf "%s %s" hd "is cached, not transcribing it.";
+        Printf.printf "%s %s\n" hd "is cached, not transcribing it.";
         avoid_transcribed_files tl
       end
       
@@ -169,6 +190,43 @@ let () =
   let num = make_model "/home/ooc/mp4grep/model" in
   let int_list = parmap ~ncores:num_cores transcribe_and_track_progress (L transcribes) in
   let another_num = delete_model 1 in
+
+  let search_transcript (audio_file : string) (orig_search : string) =
+    let file =  get_transcript audio_file in
+    let read_whole_file filename =
+      let ch = open_in filename in
+      let s = really_input_string ch (in_channel_length ch) in
+      close_in ch;
+      s
+    in
+    let str_to_search = read_whole_file file in
+
+    let whitespace_regex = Str.regexp "[ \t]+" in
+    let whitespace_replaced_with_space = Str.global_replace whitespace_regex " " orig_search in
+    
+    let whitespace_replaced_with_regex = Str.global_replace whitespace_regex cTIMESTAMP_REGEX orig_search in
+    Printf.printf "searching for %s" whitespace_replaced_with_regex;
+    
+    let reg = Str.regexp whitespace_replaced_with_regex in
+    let start_pos = Str.search_forward reg str_to_search 0 in
+    let match_ = Str.matched_string str_to_search in
+
+    (* INPUT STRING MUST HAVE AT LEAST ONE PRECEDING WHITESPACE *)
+    let first_timestamp_pos = Str.search_forward (Str.regexp cTIMESTAMP_REGEX) match_ 0 in
+    let first_timestamp = Str.matched_string match_ in
+    
+    
+    let no_timestamps = Str.global_replace (Str.regexp cTIMESTAMP_REGEX) " " match_ in
+    
+    first_timestamp^no_timestamps
+  in
+  
+  let s = search_transcript "harvard.wav" search_string in
+  Printf.printf "%s" s;
+      
+
+
+  
   ()
                                                               
 
