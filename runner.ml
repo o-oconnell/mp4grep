@@ -8,6 +8,9 @@ let cCACHE_DIR = try getenv "MP4GREP_CACHE" with
 let cMODEL_DIR = try getenv "MP4GREP_MODEL" with
     Not_found -> raise (Sys_error "Warning: MP4GREP_MODEL unset")
 
+(* Default words to print per line with --transcribe/to-files options *)
+let cDEFAULT_TRANSCRIBE_WORDS_PER_LINE = 5
+  
 let _ =
   if Sys.file_exists cCACHE_DIR = false then
     raise (Failure ("Cache directory "^cCACHE_DIR^" not found"))
@@ -16,7 +19,6 @@ let _ =
   if (Sys.is_directory cCACHE_DIR) = false then
     raise (Failure ("Cache directory "^cCACHE_DIR^" is not a directory"))
 
-
 let _ =
   if Sys.file_exists cMODEL_DIR = false then
     raise (Failure ("Model directory "^cMODEL_DIR^" not found"))
@@ -24,11 +26,6 @@ let _ =
 let _ =
   if (Sys.is_directory cMODEL_DIR) = false then
     raise (Failure ("Model directory "^cMODEL_DIR^" is not a directory"))
-
-let cTIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
-
-
-let cTRAILING_TIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
 
 let cANSI_RESET = "\x1b[0m"
 let cANSI_RED = "\x1b[31m"
@@ -180,14 +177,14 @@ type search_params =
     after : int option; }
 
 type transcribe_params =
-  { files : string list; }
+  { files : (string list) option;
+    words_per_line : int option; }
   
 type workflow =
   | Search of search_params
   | Transcribe of transcribe_params
   | Clear_cache
   | Parse_fail
-
 
 let consume_int (xs : string list) (arg : string) =
     match xs with
@@ -211,12 +208,12 @@ let consume_search_args (xs : string list) : search_params =
     match xs with
     | [] -> check_required_search_params params
     | hd :: tl -> match hd with
-      | "-before" -> let before_val, tl = consume_int tl "-before" in
+      | "-before" | "--before" -> let before_val, tl = consume_int tl "-before" in
         param_create tl { query = params.query;
                           files = params.files;
                           before = Some(before_val);
                           after = params.after; }
-      | "-after" -> let after_val, tl = consume_int tl "-after" in
+      | "-after" | "--after" -> let after_val, tl = consume_int tl "-after" in
         param_create tl { query = params.query;
                           files = params.files;
                           before = params.before;
@@ -240,57 +237,59 @@ let consume_search_args (xs : string list) : search_params =
                        before = Some(cDEFAULT_WORDS_BEFORE);
                        after = Some(cDEFAULT_WORDS_AFTER); }
 
+let check_required_transcribe_params (params : transcribe_params) : transcribe_params =
+  if params.files = None then
+    raise (Failure "No files to transcribe provided")
+  else
+    params
+
+let consume_transcribe_args (xs : string list) : transcribe_params =
+  let rec param_create (xs : string list) (params : transcribe_params) : transcribe_params =
+    match xs with
+    | [] -> check_required_transcribe_params params
+    | hd :: tl ->
+      match hd with
+      | "--words" | "-words" | "--words-per-line" | "-words-per-line" -> let words_val, tl
+        = consume_int tl "--words/-words/--words-per-line/-words-per-line" in
+        param_create tl { files = params.files;
+                          words_per_line = Some(words_val); }
+      | _ ->
+        match params.files with
+        | Some x -> param_create tl { files = Some (hd :: x);
+                                      words_per_line = params.words_per_line; }
+        | None ->param_create tl { files = Some([hd]);
+                                   words_per_line = params.words_per_line; }
+                                     
+  in param_create xs { files = None;
+                       words_per_line = Some(cDEFAULT_TRANSCRIBE_WORDS_PER_LINE); }
+
+
 let unwrap (x : 'a option) : 'a =
   match x with
   | Some(contents) -> contents
   | None -> raise (Failure "Could not unwrap.")
+              
+let ignore_cached_files (file : string) : bool =
+  if is_cached file then begin
+      Printf.printf "File %s %s\n" file "is cached, not transcribing.\n";
+      false
+    end
+  else true
 
-let do_search (args : search_params) =
-  let query = unwrap args.query in
-  let filenames = unwrap args.files in
-  let before = unwrap args.before in
-  let after = unwrap args.after in
+let ignore_nonexistent_files (file : string) : bool =
+  if file_exists file then true
+  else begin
+    Printf.printf "File %s does not exist, not transcribing.\n" file;
+    false
+  end
 
+let transcribe_files (audiofiles_to_transcribe : string list) =
   let num_cpu = cpu_count () in
   let num_cores = num_cpu - 1 in (* one parent *)
   
-  (* CHECK FOR CACHED FILES, DO NOT ATTEMPT TO TRANSCRIBE THEM *)
-  let rec without_transcribed_files (filenames : string list) : string list =
-    match filenames with
-    | [] -> []
-    | hd :: tl ->
-      if is_cached hd then begin
-        Printf.printf "%s %s\n" hd "is cached, not transcribing it.";
-        without_transcribed_files tl
-      end
-      
-      else
-        hd :: without_transcribed_files tl
-  in
-  
-  let rec without_nonexistent_files (filenames : string list) : string list =
-    match filenames with
-    | [] -> []
-    | hd :: tl ->
-      if file_exists hd then
-        hd :: (without_nonexistent_files tl)
-      else
-        without_nonexistent_files tl
-  in
-
-  let audiofiles_to_search = filenames
-                             |> without_nonexistent_files
-  in
-  
-  let audiofiles_to_transcribe = filenames
-                                 |> without_nonexistent_files
-                                 |> without_transcribed_files
-  in
-  
-  (* CREATE DURATION FILES. MUST CALL PRIOR TO TRANSCRIBING *)
   make_total_duration_files audiofiles_to_transcribe;
   make_current_duration_files audiofiles_to_transcribe;
-
+  
   let rec make_par_list (xs : string list) : transcribable_or_progress_bar list =
     match xs with
     | [] -> []
@@ -301,9 +300,32 @@ let do_search (args : search_params) =
                     :: make_par_list audiofiles_to_transcribe  in
   
   (* TRANSCRIBE *)
-  let num = make_model "/home/ooc/mp4grep/model" in
-  let int_list = parmap ~ncores:num_cores transcribe_and_track_progress (L transcribes) in
-  let another_num = delete_model 1 in
+  let _ = make_model cMODEL_DIR in
+  let _ = parmap ~ncores:num_cores transcribe_and_track_progress (L transcribes) in
+  let _ = delete_model 1 in
+  ()
+
+
+
+let do_search (args : search_params) =
+  let query = unwrap args.query in
+  let filenames = unwrap args.files in
+  let before = unwrap args.before in
+  let after = unwrap args.after in
+
+  
+  (* Does not print anything *)
+  let audiofiles_to_search = filenames
+                             |> List.filter file_exists 
+  in
+
+  (* Gives the user feedback about the status of their files *)
+  let audiofiles_to_transcribe = filenames
+                                 |> List.filter ignore_nonexistent_files
+                                 |> List.filter ignore_cached_files
+  in
+  
+  transcribe_files audiofiles_to_transcribe;
      
   let search_transcript (orig_search : string) (audio_file : string) =
     let file =  get_transcript audio_file in
@@ -394,7 +416,6 @@ let do_search (args : search_params) =
           if str_to_search.[!startpos] = ' ' then begin
             spaces_prior := !spaces_prior + 1;
           end
-
         done;
 
         (* Make sure that the starting position is always
@@ -445,18 +466,16 @@ let clear_cache () =
   (* remove_directory_contents cCACHE_DIR; () *)
 
 let () =
-  
-  let lexed = Sys.argv
+  let lexemes = Sys.argv
               |> Array.to_list
-              |> List.tl (* ignore the command *)
+              |> List.tl (* ignore the first param *)
   in
-  let wkflow = match lexed with
+  let wkflow = match lexemes with
     | [] -> raise (Sys_error "Not enough arguments")
     | hd :: tl -> match hd with
-      | "-search" -> Search (consume_search_args tl)
-      (* | "-transcribe" -> Transcribe (consume_transcribe_args tl) *)
-      | "-clear-cache" -> Clear_cache
-      | _ -> Parse_fail
+      | "--transcribe" -> Transcribe (consume_transcribe_args tl)
+      | "--clear-cache" | "-clear-cache" -> Clear_cache
+      | _ -> Search (consume_search_args lexemes)
   in
 
   let x =
