@@ -8,8 +8,27 @@ let cCACHE_DIR = try getenv "MP4GREP_CACHE" with
 let cMODEL_DIR = try getenv "MP4GREP_MODEL" with
     Not_found -> raise (Sys_error "Warning: MP4GREP_MODEL unset")
 
-let cTIMESTAMP_REGEX = "\\(\\[\\([0-9]*:[0-9]*:[0-9]*\\)\\]\\|\\[\\([0-9]*:[0-9]*\\)\\]\\)"
-let cTRAILING_TIMESTAMP_REGEX = "\\(\\[\\([0-9]*:[0-9]*:[0-9]*\\)\\]\\|\\[\\([0-9]*:[0-9]*\\)\\]\\)"
+let _ =
+  if Sys.file_exists cCACHE_DIR = false then
+    raise (Failure ("Cache directory "^cCACHE_DIR^" not found"))
+
+let _ =
+  if (Sys.is_directory cCACHE_DIR) = false then
+    raise (Failure ("Cache directory "^cCACHE_DIR^" is not a directory"))
+
+
+let _ =
+  if Sys.file_exists cMODEL_DIR = false then
+    raise (Failure ("Model directory "^cMODEL_DIR^" not found"))
+
+let _ =
+  if (Sys.is_directory cMODEL_DIR) = false then
+    raise (Failure ("Model directory "^cMODEL_DIR^" is not a directory"))
+
+let cTIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
+
+
+let cTRAILING_TIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
 
 let cANSI_RESET = "\x1b[0m"
 let cANSI_RED = "\x1b[31m"
@@ -19,6 +38,15 @@ let cANSI_BLUE = "\x1b[34m"
 let cDEFAULT_WORDS_BEFORE = 5
 let cDEFAULT_WORDS_AFTER = 1
   
+(* let remove_directory_contents (path : string) : int = *)
+(*   try *)
+(*     match Sys.is_directory path with *)
+(*     | true -> *)
+(*       Sys.readdir path |> *)
+(*       Array.iter (fun name -> Printf.printf "Going to remove: %s" (Filename.concat path name)); *)
+(*     | false -> raise Error  *)
+(*   with *)
+(*   | Error -> (Failure "Tried to remove contents of"^path^" which is not a directory"); *)
 
 let cpu_count () = 
   try match Sys.os_type with 
@@ -85,11 +113,15 @@ type transcribable_or_progress_bar =
   | Transcribable of transcribe_info
   | Progress_bar of progress_info
 
+let file_exists (filename : string) =
+  try Sys.file_exists filename
+  with
+  | Sys_error(e) -> false
+
 let is_cached (filename : string) =
   try Sys.file_exists (get_transcript filename)
   with
   | Sys_error(e) -> false
-    
 
 let transcribe_and_track_progress (inp : transcribable_or_progress_bar) : int = 
   (* PROGRESS BAR THREAD *)
@@ -104,9 +136,6 @@ let transcribe_and_track_progress (inp : transcribable_or_progress_bar) : int =
         while (!current_progress < total_duration) do
           sleep 2;
           current_progress := (get_current_duration_sum p.all_filenames);
-          (* Printf.printf "%s %d" "Current progress is" (get_current_duration_sum p.all_filenames); *)
-          (* Printf.printf "%s %d" "Total duration is " (get_max_duration_sum p.all_filenames); *)
-
           let percent = (float_of_int !current_progress) /. (float_of_int total_duration) in
           let percent = 100. *. percent in
 
@@ -211,9 +240,212 @@ let consume_search_args (xs : string list) : search_params =
                        before = Some(cDEFAULT_WORDS_BEFORE);
                        after = Some(cDEFAULT_WORDS_AFTER); }
 
+let unwrap (x : 'a option) : 'a =
+  match x with
+  | Some(contents) -> contents
+  | None -> raise (Failure "Could not unwrap.")
 
+let do_search (args : search_params) =
+  let query = unwrap args.query in
+  let filenames = unwrap args.files in
+  let before = unwrap args.before in
+  let after = unwrap args.after in
+
+  let num_cpu = cpu_count () in
+  let num_cores = num_cpu - 1 in (* one parent *)
+  
+  (* CHECK FOR CACHED FILES, DO NOT ATTEMPT TO TRANSCRIBE THEM *)
+  let rec without_transcribed_files (filenames : string list) : string list =
+    match filenames with
+    | [] -> []
+    | hd :: tl ->
+      if is_cached hd then begin
+        Printf.printf "%s %s\n" hd "is cached, not transcribing it.";
+        without_transcribed_files tl
+      end
+      
+      else
+        hd :: without_transcribed_files tl
+  in
+  
+  let rec without_nonexistent_files (filenames : string list) : string list =
+    match filenames with
+    | [] -> []
+    | hd :: tl ->
+      if file_exists hd then
+        hd :: (without_nonexistent_files tl)
+      else
+        without_nonexistent_files tl
+  in
+
+  let audiofiles_to_search = filenames
+                             |> without_nonexistent_files
+  in
+  
+  let audiofiles_to_transcribe = filenames
+                                 |> without_nonexistent_files
+                                 |> without_transcribed_files
+  in
+  
+  (* CREATE DURATION FILES. MUST CALL PRIOR TO TRANSCRIBING *)
+  make_total_duration_files audiofiles_to_transcribe;
+  make_current_duration_files audiofiles_to_transcribe;
+
+  let rec make_par_list (xs : string list) : transcribable_or_progress_bar list =
+    match xs with
+    | [] -> []
+    | hd :: tl -> Transcribable ({ filename = hd }) :: make_par_list tl
+  in
+  
+  let transcribes = Progress_bar ({all_filenames = audiofiles_to_transcribe; })
+                    :: make_par_list audiofiles_to_transcribe  in
+  
+  (* TRANSCRIBE *)
+  let num = make_model "/home/ooc/mp4grep/model" in
+  let int_list = parmap ~ncores:num_cores transcribe_and_track_progress (L transcribes) in
+  let another_num = delete_model 1 in
+     
+  let search_transcript (orig_search : string) (audio_file : string) =
+    let file =  get_transcript audio_file in
+    let read_whole_file filename =
+      let ch = open_in filename in
+      let s = really_input_string ch (in_channel_length ch) in
+      close_in ch;
+      s
+    in
+    let str_to_search = read_whole_file file in
+
+    let no_extra_words_reg = String.trim orig_search
+                           |> String.trim 
+    in
+    
+    (* APPEND & PREPEND REGEXES TO MATCH WORDS BEFORE/AFTER *)
+    let no_extra_words = Str.regexp no_extra_words_reg in
+
+    (* LOAD TIMESTAMPS INTO HASHTABLE *)
+    let tbl = Hashtbl.create 100 in
+    let timestamps_file = read_whole_file (get_timestamp audio_file) in
+
+    let last_timestamp_reached = ref false in
+    let previous_byte = ref ((String.length timestamps_file) - 1) in
+    let previous_timestamp = ref ((String.length timestamps_file) - 1) in
+    let timestamp_reg = Str.regexp cTIMESTAMP_REGEX in
+    let byte_reg = Str.regexp "([0-9]*)" in
+    let paren_reg = Str.regexp "[\\(\\)]" in
+
+    while (!last_timestamp_reached = false
+           && !previous_byte > 0
+           && !previous_timestamp > 0) do
+      try
+        previous_timestamp := (Str.search_backward timestamp_reg
+                                 timestamps_file !previous_timestamp) -1;
+        let timestamp_str = Str.matched_string timestamps_file in
+        
+        previous_byte := (Str.search_backward byte_reg
+                                 timestamps_file !previous_byte) -1;
+        let byte_str = Str.matched_string timestamps_file in
+
+        let byte_num = byte_str
+                       |> Str.global_replace paren_reg ""
+                       |> int_of_string in
+        
+        Hashtbl.add tbl byte_num timestamp_str;
+      with
+        Not_found -> last_timestamp_reached := true;
+    done;
+
+    (* FIND ALL THE MATCHES AND PUT IN RESULT LIST *)
+    (* Str.search_forward/backward has side effect: *)
+    (* The next call to Str.matched_string will return the matched string *)
+    let last_match_reached = ref false in
+    let match_lst = ref [] in
+    let previous_match_pos = ref ((String.length str_to_search) - 1) in
+    while (!last_match_reached = false && !previous_match_pos > 0) do
+      try
+        previous_match_pos := (Str.search_backward (Str.regexp no_extra_words_reg)
+                                 str_to_search !previous_match_pos) - 1;
+
+        let match_ = Str.matched_string str_to_search in
+
+        (* ASSUMPTION : Startpos and endpos are initialized to 
+           the first character of the matched string.
+           TO ACHIEVE THIS: strip the input search string of spaces before/after
+        *)
+
+        let start_of_match = !previous_match_pos + 1 in
+        let startpos = ref start_of_match in
+        let endpos = ref start_of_match in
+
+        (* Iterate backwards until words_after + 1 spaces are found *)
+        let spaces_prior = ref 0 in
+        let spaces_after = ref 0 in
+        while ((!endpos < (String.length str_to_search))
+               && (!spaces_after < (after + 1))) do
+          endpos := !endpos + 1;
+          if str_to_search.[!endpos] = ' ' then begin
+            spaces_after := !spaces_after + 1;
+          end
+        done;
+
+        (* Iterate forwards until words_after + 1 spaces are found *)
+        while ((!startpos > 0)
+               && (!spaces_prior < (before + 1))) do
+          startpos := !startpos - 1;
+          if str_to_search.[!startpos] = ' ' then begin
+            spaces_prior := !spaces_prior + 1;
+          end
+
+        done;
+
+        (* Make sure that the starting position is always
+           not a space, to index into the timestamps *)
+        if str_to_search.[!startpos] = ' ' then begin
+          startpos := !startpos + 1;
+        end;
+        
+        let portion_match = (String.sub str_to_search
+                               start_of_match
+                               (String.length match_)) in
+          
+        let portion_prior = (String.sub str_to_search
+                               !startpos
+                               (start_of_match - !startpos)) in
+        
+        let portion_after = (String.sub str_to_search
+                               (start_of_match + (String.length match_))
+                               (!endpos - (start_of_match + (String.length match_)))) in
+        
+        let timestamp = (Hashtbl.find tbl (!startpos)) in
+
+        let res = cANSI_GREEN^audio_file^cANSI_RESET
+                  ^":"
+                  ^cANSI_BLUE^timestamp^cANSI_RESET
+                  ^":"
+                  ^portion_prior
+                  ^cANSI_RED^portion_match^cANSI_RESET
+                  ^portion_after
+        in
+        
+        match_lst := (res) :: !match_lst;
+      with
+        Not_found -> last_match_reached := true;
+    done;
+    !match_lst
+  in
+  
+  let results = List.map (search_transcript query) audiofiles_to_search
+                |> List.concat
+  in
+  
+  let () = List.iter (Printf.printf "%s\n") results in
+  ()
+
+let clear_cache () =
+  Printf.printf "%s\n" "Cleared cache."; ()
+  (* remove_directory_contents cCACHE_DIR; () *)
 
 let () =
+  
   let lexed = Sys.argv
               |> Array.to_list
               |> List.tl (* ignore the command *)
@@ -229,29 +461,23 @@ let () =
 
   let x =
     match wkflow with
-    | Search (args) ->
-      (match args.before, args.files with
-       | Some (int_val), Some (str_lst) -> Printf.printf "before: %d" int_val; 1
-       | Some (int_val), None -> Printf.printf "missing the files %s\n" " "; 1
-      | _ -> Printf.printf "none"; 1)
-      
+    | Search (args) -> do_search args; 1
+    | Clear_cache -> clear_cache (); 1
     | _ -> Printf.printf "parse fail"; 0
-  in     
-
-
-    
+  in
+  
   (* match wkflow with *)
   (* | Search (args) -> do_search (args); *)
   (* | Transcribe (args) -> do_transcribe (args); *)
   (* | Clear_cache -> clear_cache; *)
   (* | Parse_fail -> print_help; *)
 
-    
-  List.iter (Printf.printf "\n%s\n") lexed;
+  ()
+  (* List.iter (Printf.printf "\n%s\n") lexed; *)
 
   
 
-  ()
+  (* () *)
   
   (* let input_files = ref [] in *)
   (* let anon_fun filename = *)

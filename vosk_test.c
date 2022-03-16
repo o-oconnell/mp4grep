@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 VoskModel *model;
-int write_vosk_json_to_files(const char* vosk_json, const char* timestamps, const char* transcript);
+int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const char* timestamp_s, int total_chars_printed);
 
 CAMLprim value make_model(value str_model) {
     model = vosk_model_new(String_val(str_model));
@@ -29,8 +29,6 @@ CAMLprim value total_duration(value audio_file, value duration_file) {
     return Val_int(0);
 }
 
-
-
 CAMLprim value transcribe(value audio,
 			  value transcript,
 			  value timestamp,
@@ -50,17 +48,18 @@ CAMLprim value transcribe(value audio,
     FILE *current_dur = fopen(String_val(current_duration), "w");    
 
     fseek(wavin, 0, SEEK_SET);
-    fprintf(output, "%s\n", String_val(audio));
-    
+
+    int chars_printed = 0;
     fseek(wavin, 44, SEEK_SET);
     while (!feof(wavin)) {
 
          nread = fread(buf, 1, sizeof(buf), wavin);
          final = vosk_recognizer_accept_waveform(recognizer, buf, nread);
          if (final) {
-             write_vosk_json_to_files(vosk_recognizer_final_result(recognizer),
-				      String_val(transcript),
-				      String_val(timestamp));
+             chars_printed = write_vosk_json_to_files(vosk_recognizer_final_result(recognizer),
+						      String_val(transcript),
+						      String_val(timestamp),
+						      chars_printed);
          } else {
              /* fprintf(output, "%s\n", vosk_recognizer_partial_result(recognizer)); */
          }
@@ -68,7 +67,7 @@ CAMLprim value transcribe(value audio,
 	 fseek(current_dur, 0, SEEK_SET);
 	 fprintf(current_dur, "%ld\n", ftell(wavin));
     }
-    fprintf(output, "%s\n", vosk_recognizer_final_result(recognizer));
+    /* fprintf(output, "%s\n", vosk_recognizer_final_result(recognizer)); */
 
     fseek(current_dur, 0, SEEK_SET);
     /* fprintf(current_dur, "%s\n", "DONE"); */
@@ -77,7 +76,6 @@ CAMLprim value transcribe(value audio,
 
     
     fclose(wavin);
-    fclose(output);
     fclose(current_dur);
     
     return Val_int(1);
@@ -111,20 +109,21 @@ int jsoneq (const char* vosk_json, jsmntok_t* tokens, int tok_index, const char 
     return 0;
 }
 
-int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const char* timestamp_s) {
+int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const char* timestamp_s, int total_chars_printed) {
     const int VOSK_JSON_MAX_TOKENS = 1024;
     jsmntok_t tokens[VOSK_JSON_MAX_TOKENS];
 
-    FILE*text = fopen(text_s, "a");
+    FILE *text = fopen(text_s, "a");
     FILE *timestamp = fopen(timestamp_s, "a");
-    
+
     int tokens_read;
     {
         jsmn_parser parser;
         jsmn_init(&parser);
         tokens_read = jsmn_parse(&parser, vosk_json, strlen(vosk_json), tokens, VOSK_JSON_MAX_TOKENS);
         if ((tokens_read <= 0) || (tokens[0].type != JSMN_OBJECT)) {
-            return -1; // TODO: log json parse failure
+	    printf("%s\n", "JSON PARSE FAILURE. EXITING");
+	    exit(1);
         }
     }
 
@@ -136,7 +135,8 @@ int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const ch
         /* SKIP IRRELEVANT FIELDS */
         if (jsoneq(vosk_json, tokens, i, "result")) {
             if (tokens[i + 1].type != JSMN_ARRAY) {
-                return -1; // shouldn't happen
+		printf("%s\n", "JSON PARSE FAILURE. EXITING");
+		exit(1);
             }
             /* LOOP OVER WORD STRUCTS */
             for (int j = 0, obj = 0; obj < tokens[i + 1].size; j++) {
@@ -148,13 +148,18 @@ int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const ch
                 for (int k = 0, field = 0; field < tokens[i + 1 + j].size; k++) {
                     if (jsoneq(vosk_json, tokens, i + 1 + j + 1 + k, "word")) {
                         jsmntok_t* word_token = &tokens[i + 1 + j + 1 + k + 1];
-			const char* WRITE_FORMAT = "%.*s";
-			fprintf(text, WRITE_FORMAT, word_token->end-word_token->start, vosk_json+word_token->start);
+			const char* WRITE_FORMAT = "%.*s ";
+
+			char format_buf[500];
+			snprintf(format_buf, 500, WRITE_FORMAT, word_token->end-word_token->start, vosk_json+word_token->start);
+			
+			fprintf(text, "%s", format_buf);
+			total_chars_printed += strlen(format_buf); 
+			/* printf("just printed||%s||, the total chars is now %d", format_buf, total_chars_printed); */
                     }
 
                     if (jsoneq(vosk_json, tokens, i + 1 + j + 1 + k, "start")) {
                         jsmntok_t* start_timestamp_token = &tokens[i + 1 + j + 1 + k + 1];
-
 
 			    /* SLICE OUT NUMBER FROM VOSK OUTPUT */
 			    strncpy(conversion_buffer, vosk_json+start_timestamp_token->start, start_timestamp_token->end-start_timestamp_token->start);
@@ -177,16 +182,13 @@ int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const ch
 			    total_seconds = total_seconds % MINUTE;
 			    
 			    int seconds = total_seconds;
-
+			    
 			    /* FORMAT AS TIMESTAMP */
 			    if (hours > 0) {
-				fprintf(text, "[%.2i:%.2i:%.2i]", hours, minutes, seconds);
+				fprintf(timestamp, "[%.2i:%.2i:%.2i](%d)", hours, minutes, seconds, total_chars_printed);
 			    } else {
-				fprintf(text, "[%.2i:%.2i]", minutes, seconds);
+				fprintf(timestamp, "[%.2i:%.2i](%d)", minutes, seconds, total_chars_printed);
 			    }
-
-
-
                     }
 
                     /* ignoring end time and confidence values for now... */
@@ -203,5 +205,5 @@ int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const ch
 
     fclose(text);
     fclose(timestamp);
-    return 0; // success
+    return total_chars_printed; // success
 }
