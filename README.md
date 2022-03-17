@@ -31,3 +31,4 @@ Pull requests are welcome. Please open a pull request if you have a bug to fix o
 
 ### Platforms
 mp4grep currently supports Linux.
+
