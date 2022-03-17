@@ -29,7 +29,8 @@ let _ =
   if (Sys.is_directory cMODEL_DIR) = false then
     raise (Failure ("Model directory "^cMODEL_DIR^" is not a directory"))
 
-let cSUPPORTED_AUDIO_EXTENSIONS = ["mp3"; "mp4"; "ogg"; "webm"; "mov"; "wav"]
+(* TODO: add support for additional extensions *)
+let cSUPPORTED_AUDIO_EXTENSIONS = ["wav"] (* "mp3"; "mp4"; "ogg"; "webm"; "mov"; "wav"] *)
 
 let cANSI_RESET = "\x1b[0m"
 let cANSI_RED = "\x1b[31m"
