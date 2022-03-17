@@ -37,6 +37,37 @@ const int VOSK_AUDIO_BUFFER_SIZE = 4096;
 /* TEMPORARY SOLUTION: DEFINED IN BOTH TRANSCRIBE.CC AND MEDIAGREP.CC */
 const char* TRANSCRIBE_CACHE_DIRECTORY = ((getenv("MEDIAGREP_CACHE")) ? (getenv("MEDIAGREP_CACHE")) : (".cache/"));
 
+int test_function() {
+    
+    FILE *wavin;
+    char buf[3200];
+    int nread, is_final;
+
+    VoskModel *model = vosk_model_new("model");
+    VoskRecognizer *recognizer = vosk_recognizer_new(model, 16000.0);
+
+    wavin = fopen("test.wav", "rb");
+    fseek(wavin, 44, SEEK_SET);
+    while (!feof(wavin)) {
+         nread = fread(buf, 1, sizeof(buf), wavin);
+         is_final = vosk_recognizer_accept_waveform(recognizer, buf, nread);
+         if (is_final) {
+             printf("%s\n", vosk_recognizer_result(recognizer));
+         } else {
+             printf("%s\n", vosk_recognizer_partial_result(recognizer));
+         }
+    }
+    printf("%s\n", vosk_recognizer_final_result(recognizer));
+
+    vosk_recognizer_free(recognizer);
+    vosk_model_free(model);
+    fclose(wavin);
+    return 0;
+    
+}
+
+VoskModel* model = vosk_model_new("model");
+
 int transcribe(const std::string &model_str, const std::string &media_str, struct transcript_location* output, struct progress_bar_wrapper* pbar) {
     
     const char* model_path = model_str.c_str();
@@ -157,7 +188,7 @@ int transcribe_audio(const char* model_path, const char* vosk_audio_path, transc
 
     /* INIT VOSK */
     if (!SHOW_VOSK_OUTPUT) vosk_set_log_level(-1); // disables vosk's logging, has to be done before things are initialized.
-    VoskModel* model = vosk_model_new(model_path); // NOTE: only one model needed for multiple recognizers. When multi-threading pull this out and pass each recognizer the same model.
+    // VoskModel* model = vosk_model_new(model_path); // NOTE: only one model needed for multiple recognizers. When multi-threading pull this out and pass each recognizer the same model.
     VoskRecognizer* recognizer = vosk_recognizer_new(model, VOSK_SAMPLING_RATE);
     vosk_recognizer_set_words(recognizer, true);
     int is_final; // variable used by recognizer to indicate this is the final part of a transcription.

@@ -79,7 +79,10 @@ struct workflow {
 };
 
 int main(int argc, const char** argv) {
-
+    
+    // test_function();
+    
+    
     auto option_exists = [&](const std::string& option) {
 	return std::find(argv, argv + argc, option) != (argv + argc);
     };
