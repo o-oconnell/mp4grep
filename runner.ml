@@ -10,7 +10,9 @@ let cMODEL_DIR = try getenv "MP4GREP_MODEL" with
 
 (* Default words to print per line with --transcribe/to-files options *)
 let cDEFAULT_TRANSCRIBE_WORDS_PER_LINE = 5
-  
+
+let cTIMESTAMP_REGEX = "\(\[\([0-9]*:[0-9]*:[0-9]*\)\]\|\[\([0-9]*:[0-9]*\)\]\)"
+
 let _ =
   if Sys.file_exists cCACHE_DIR = false then
     raise (Failure ("Cache directory "^cCACHE_DIR^" not found"))
@@ -183,6 +185,7 @@ type transcribe_params =
 type workflow =
   | Search of search_params
   | Transcribe of transcribe_params
+  | Transcribe_to_files of transcribe_params
   | Clear_cache
   | Parse_fail
 
@@ -305,14 +308,99 @@ let transcribe_files (audiofiles_to_transcribe : string list) =
   let _ = delete_model 1 in
   ()
 
+let read_whole_file (filename : string) : string  =
+  let ch = open_in filename in
+  let s = really_input_string ch (in_channel_length ch) in
+  close_in ch;
+  s
+  
+let get_byte_to_timestamp_table (audio_file : string) = 
+  let tbl = Hashtbl.create 100 in
+  let timestamps_file = read_whole_file (get_timestamp audio_file) in
+  
+  let last_timestamp_reached = ref false in
+  let previous_byte = ref ((String.length timestamps_file) - 1) in
+  let previous_timestamp = ref ((String.length timestamps_file) - 1) in
+  let timestamp_reg = Str.regexp cTIMESTAMP_REGEX in
+  let byte_reg = Str.regexp "([0-9]*)" in
+  let paren_reg = Str.regexp "[\\(\\)]" in
+  
+  while (!last_timestamp_reached = false
+         && !previous_byte > 0
+         && !previous_timestamp > 0) do
+    try
+      previous_timestamp := (Str.search_backward timestamp_reg
+                               timestamps_file !previous_timestamp) -1;
+      let timestamp_str = Str.matched_string timestamps_file in
 
+      previous_byte := (Str.search_backward byte_reg
+                          timestamps_file !previous_byte) -1;
+      let byte_str = Str.matched_string timestamps_file in
+
+      let byte_num = byte_str
+                     |> Str.global_replace paren_reg ""
+                     |> int_of_string in
+
+      Hashtbl.add tbl byte_num timestamp_str;
+    with
+      Not_found -> last_timestamp_reached := true;
+  done;
+  tbl
+  
+let get_transcription (words_per_line : int) (audio_file : string) =
+  let output = ref "" in
+  let all_words = read_whole_file (get_transcript audio_file) in
+  let line_start = ref 0 in
+  let char_pos = ref 0 in
+  let byte_to_timestamp = get_byte_to_timestamp_table audio_file in
+  let line_lst = ref [] in
+    
+  while (!char_pos < (String.length all_words)) do
+    let space_count = ref 0 in
+    
+    while (!space_count < words_per_line && !char_pos < (String.length all_words)) do
+      if all_words.[!char_pos] = ' ' then begin
+        space_count := !space_count + 1;
+      end;
+      char_pos := !char_pos + 1;
+    done;
+    
+    let line_words = String.sub all_words !line_start (!char_pos - !line_start) in
+    let timestamp = Hashtbl.find byte_to_timestamp !line_start in
+    let line = timestamp^":"^line_words in
+    line_lst := (line :: !line_lst);
+    line_start := !char_pos;
+  done;
+  (audio_file, (List.rev !line_lst))
+  
+let do_transcribe (args : transcribe_params) =
+  let filenames = unwrap args.files in
+  let words_per_line = unwrap args.words_per_line in
+
+  let lst_of_lsts =  List.map (get_transcription words_per_line) filenames in
+  let _ = List.map (fun (audio_file, lst) ->
+      Printf.printf "%s\n" audio_file;
+      List.iter (Printf.printf "%s\n") lst) lst_of_lsts in
+  ()
+
+let do_transcribe_to_files (args : transcribe_params) =
+  let filenames = unwrap args.files in
+  let words_per_line = unwrap args.words_per_line in
+
+  let lst_of_lsts =  List.map (get_transcription words_per_line) filenames in
+  let _ = List.map (fun (audio_file, lst) ->
+      let output_filename = audio_file^"_transcript.txt" in
+      Printf.printf "Printing transcript of %s to %s\n" audio_file output_filename;
+      let out_chan = open_out output_filename in
+      List.iter (Printf.fprintf out_chan "%s\n") lst;
+      close_out out_chan;) lst_of_lsts in
+  ()
 
 let do_search (args : search_params) =
   let query = unwrap args.query in
   let filenames = unwrap args.files in
   let before = unwrap args.before in
   let after = unwrap args.after in
-
   
   (* Does not print anything *)
   let audiofiles_to_search = filenames
@@ -329,12 +417,6 @@ let do_search (args : search_params) =
      
   let search_transcript (orig_search : string) (audio_file : string) =
     let file =  get_transcript audio_file in
-    let read_whole_file filename =
-      let ch = open_in filename in
-      let s = really_input_string ch (in_channel_length ch) in
-      close_in ch;
-      s
-    in
     let str_to_search = read_whole_file file in
 
     let no_extra_words_reg = String.trim orig_search
@@ -345,38 +427,10 @@ let do_search (args : search_params) =
     let no_extra_words = Str.regexp no_extra_words_reg in
 
     (* LOAD TIMESTAMPS INTO HASHTABLE *)
-    let tbl = Hashtbl.create 100 in
-    let timestamps_file = read_whole_file (get_timestamp audio_file) in
 
-    let last_timestamp_reached = ref false in
-    let previous_byte = ref ((String.length timestamps_file) - 1) in
-    let previous_timestamp = ref ((String.length timestamps_file) - 1) in
-    let timestamp_reg = Str.regexp cTIMESTAMP_REGEX in
-    let byte_reg = Str.regexp "([0-9]*)" in
-    let paren_reg = Str.regexp "[\\(\\)]" in
-
-    while (!last_timestamp_reached = false
-           && !previous_byte > 0
-           && !previous_timestamp > 0) do
-      try
-        previous_timestamp := (Str.search_backward timestamp_reg
-                                 timestamps_file !previous_timestamp) -1;
-        let timestamp_str = Str.matched_string timestamps_file in
-        
-        previous_byte := (Str.search_backward byte_reg
-                                 timestamps_file !previous_byte) -1;
-        let byte_str = Str.matched_string timestamps_file in
-
-        let byte_num = byte_str
-                       |> Str.global_replace paren_reg ""
-                       |> int_of_string in
-        
-        Hashtbl.add tbl byte_num timestamp_str;
-      with
-        Not_found -> last_timestamp_reached := true;
-    done;
-
-    (* FIND ALL THE MATCHES AND PUT IN RESULT LIST *)
+    let tbl = get_byte_to_timestamp_table audio_file in
+      
+      (* FIND ALL THE MATCHES AND PUT IN RESULT LIST *)
     (* Str.search_forward/backward has side effect: *)
     (* The next call to Str.matched_string will return the matched string *)
     let last_match_reached = ref false in
@@ -473,7 +527,8 @@ let () =
   let wkflow = match lexemes with
     | [] -> raise (Sys_error "Not enough arguments")
     | hd :: tl -> match hd with
-      | "--transcribe" -> Transcribe (consume_transcribe_args tl)
+      | "--transcribe" | "-transcribe" -> Transcribe (consume_transcribe_args tl)
+      | "--transcribe-to-files" | "-transcribe-to-files" -> Transcribe_to_files (consume_transcribe_args tl)
       | "--clear-cache" | "-clear-cache" -> Clear_cache
       | _ -> Search (consume_search_args lexemes)
   in
@@ -481,6 +536,8 @@ let () =
   let x =
     match wkflow with
     | Search (args) -> do_search args; 1
+    | Transcribe (args) -> do_transcribe args; 1
+    | Transcribe_to_files (args) -> do_transcribe_to_files args; 1
     | Clear_cache -> clear_cache (); 1
     | _ -> Printf.printf "parse fail"; 0
   in
