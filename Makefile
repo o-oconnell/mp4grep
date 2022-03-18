@@ -22,7 +22,7 @@ bindings: vosk_bindings.c
 clean:
 	rm mp4grep.cmo mp4grep.cmi defs.cmi defs.cmo vosk_bindings.o
 
-install:
-	cp bin/mp4grep $(HOME)/.local/bin
+# install:
+# 	cp bin/mp4grep $(HOME)/.local/bin
 
 

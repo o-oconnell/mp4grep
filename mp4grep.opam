@@ -10,6 +10,6 @@ authors: "ooc oocgithub@gmail.com"
 dev-repo: "git+https://github.com/o-oconnell/mp4grep"
 depends: [ "ocaml" "parmap" ]
 build: [
-  ["make all"]
+  [make]
 ]
-install: ["make install"]
+install: [make]
