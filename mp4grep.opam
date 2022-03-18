@@ -8,8 +8,11 @@ Command line tool for transcribing and searching the audio contents of files
 maintainer: "ooc oocgithub@gmail.com"
 authors: "ooc oocgithub@gmail.com"
 dev-repo: "git+https://github.com/o-oconnell/mp4grep"
-depends: [ "ocaml" "parmap" ]
-build: [
-  [make]
-]
+depends: [
+  "ocaml-variants" {= "4.12.0+domains+effects"}
+  "parmap" {="1.2.4"}
+  ]
+# build: [
+#   [make]
+# ]
 install: [make]
