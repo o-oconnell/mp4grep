@@ -1,10 +1,17 @@
+BIN := bin
+
 .PHONY: defs bindings all
 
-current_dir = $(shell pwd)
-OPAM_SWITCH=${OPAM_SWITCH_PREFIX}
+nothing:=$(echo "hello world")
+
+
+current_dir:= $(shell pwd)
+OPAM_SWITCH:=${OPAM_SWITCH_PREFIX}
+
+$(info $$current_dir is [${current_dir}])
 
 all: defs bindings mp4grep.ml
-	ocamlc -custom -o bin/mp4grep unix.cma -I $(OPAM_SWITCH_PREFIX)/lib/parmap/ $(OPAM_SWITCH_PREFIX)/lib/parmap/parmap.cma str.cma defs.cmo mp4grep.ml vosk_bindings.o -cclib -Llib -cclib -lvosk
+	ocamlc -custom -o $(current_dir)/$(BIN)/mp4grep unix.cma -I $(OPAM_SWITCH_PREFIX)/lib/parmap/ $(OPAM_SWITCH_PREFIX)/lib/parmap/parmap.cma str.cma defs.cmo mp4grep.ml vosk_bindings.o -cclib -Llib -cclib -lvosk
 
 defs: defs.ml
 	ocamlc -c defs.ml
