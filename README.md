@@ -1,12 +1,10 @@
 mp4grep
 -------
-mp4grep is a tool that transcribes and searches audio files, caching the results for fast repeated searches. Out of the box, it only supports single-channel, 16000 Hz wav files, so mp4grep ships with `mp4grep-convert` which converts mp3, mp4, ogg, webm, mov, wav, and avi to the wav format that mp4grep supports. 
+mp4grep is a tool that transcribes and searches audio files, caching the results for fast repeated searches. Out of the box, it only supports single-channel, 16000 Hz wav files, so mp4grep ships with `mp4grep-convert` which converts mp3, mp4, ogg, webm, mov, wav, and avi to the correct format.
 
 ### Screenshots
-![conversion](https://github.com/o-oconnell/mp4grep/blob/main/screenshots/conversion.png)
-![search](https://github.com/o-oconnell/mp4grep/blob/main/screenshots/search.png)
-![transcribe](https://github.com/o-oconnell/mp4grep/blob/main/screenshots/transcription.png)
-![help](https://github.com/o-oconnell/mp4grep/blob/main/screenshots/helpscreen.png)
+![all](https://github.com/o-oconnell/mp4grep/blob/main/screenshots/mp4grep-example.png)
+![help](https://github.com/o-oconnell/mp4grep/blob/main/screenshots/mp4grep-help.png)
 
 ### Compatible transcription models
 mp4grep depends on [Vosk](https://alphacephei.com/vosk/) to transcribe audio. You can download models from Vosk's [official list](https://alphacephei.com/vosk/models).
