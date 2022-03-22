@@ -223,6 +223,7 @@ type workflow =
   | Transcribe of transcribe_params
   | Transcribe_to_files of transcribe_params
   | Clear_cache
+  | Help
   | Parse_fail
 
 let consume_int (xs : string list) (arg : string) =
@@ -552,6 +553,22 @@ let do_search (args : search_params) =
   let () = List.iter (Printf.printf "%s\n") results in
   ()
 
+let print_help_message () =
+  print_endline "Search: mp4grep [options] [search string] [files/directories]";
+  print_endline "Search options: ";
+  print_endline "  --before [int value] <- words before a match to print";
+  print_endline "  --after [int value] <- words after a match to print";
+
+
+  print_endline "Transcribing: mp4grep --transcribe[-to-files] [options] [files/directories]";
+  print_endline " ^--transcribe prints output to screen";
+  print_endline " ^--transcribe-to-files prints output to text files";
+  print_endline "Transcribe options: ";
+  print_endline "  --words <- words per line to print";
+  print_endline "Clear the cache: mp4grep --clear-cache";
+  print_endline "Help message: mp4grep --help";
+  ()
+
 exception Is_not_directory
 exception Not_deleting_cache
   
@@ -594,6 +611,7 @@ let () =
       | "--transcribe" | "-transcribe" -> Transcribe (consume_transcribe_args tl)
       | "--transcribe-to-files" | "-transcribe-to-files" -> Transcribe_to_files (consume_transcribe_args tl)
       | "--clear-cache" | "-clear-cache" -> Clear_cache
+      | "--help" | "-help" | "-h" -> Help
       | _ -> Search (consume_search_args lexemes)
   in
 
@@ -603,6 +621,7 @@ let () =
     | Transcribe (args) -> do_transcribe args
     | Transcribe_to_files (args) -> do_transcribe_to_files args
     | Clear_cache -> clear_cache ()
+    | Help -> print_help_message ()
     | _ -> Printf.printf "Parse fail"
   in
   ()
