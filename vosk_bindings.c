@@ -10,6 +10,7 @@ VoskModel *model;
 int write_vosk_json_to_files(const char* vosk_json, const char* text_s, const char* timestamp_s, int total_chars_printed);
 
 CAMLprim value make_model(value str_model) {
+    vosk_set_log_level(-1);
     model = vosk_model_new(String_val(str_model));
     return Val_int(0);
 }
@@ -34,6 +35,7 @@ CAMLprim value transcribe(value audio,
 			  value timestamp,
 			  value total_duration,
 			  value current_duration) {
+
 
     FILE *wavin, *output;
     char buf[3200];

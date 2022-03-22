@@ -31,7 +31,7 @@ The mp4grep executable only takes single-channel, 16000 Hz wav files as input. R
 OCaml 4.12.0+domains+effects, parmap 1.2.4, and ffmpeg. The Makefile assumes that you have installed parmap using Opam, and looks under OPAM_INSTALL_PREFIX for it. You will have to modify the topmost `ocamlc` command in the Makefile if you have installed it another way. 
 
 ### OCaml
-mp4grep was previously written in Java, and later in C++. We've moved to OCaml because we think its robustness will help mp4grep to survive and improve with time. The OCaml community is still new, so it's important to be aware of which compiler you are using and where dependencies are stored. We recommend following the installation instructions above, and using Opam. 
+mp4grep was previously written in Java, and later in C++. Although we learned a lot from using those languages, we've moved to OCaml because we think its robustness will help mp4grep to survive and improve with time. The OCaml community is still new, so it's important to be aware of which compiler you are using and where dependencies are stored. We recommend following the installation instructions above, and using Opam. 
 
 ### mp4grep-convert
 Prior versions of mp4grep came bundled with a ffmpeg executable or made calls to ffmpeg in the user's shell. Both caused compatibility issues and hidden transcription errors; this method was also insecure and unpredictable. Although it's inconvenient to convert files before transcribing them, we thought that the alternative was worse. New versions will separate these concerns until we can find a better option.
