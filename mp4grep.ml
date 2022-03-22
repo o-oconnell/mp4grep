@@ -38,8 +38,6 @@ let cANSI_GREEN = "\x1b[32m"
 let cANSI_YELLOW = "\x1b[33m"
 let cANSI_BLUE = "\x1b[34m"
 
-  
-
 let cDEFAULT_WORDS_BEFORE = 5
 let cDEFAULT_WORDS_AFTER = 1
   
@@ -49,7 +47,11 @@ let cpu_count () =
   | _ ->
       let i = Unix.open_process_in "getconf _NPROCESSORS_ONLN" in
       let close () = ignore (Unix.close_process_in i) in
-      try Scanf.fscanf i "%d" (fun n -> close (); n) with e -> close (); raise e
+      try
+        let ib = Scanf.Scanning.from_channel i in
+        Scanf.bscanf ib "%d" (fun n -> close (); n)
+      with
+        e -> close(); raise e
   with
   | Not_found | Sys_error _ | Failure _ | Scanf.Scan_failure _ 
   | End_of_file | Unix.Unix_error (_, _, _) -> 1
@@ -585,6 +587,7 @@ let () =
               |> Array.to_list
               |> List.tl (* ignore the first param *)
   in
+
   let wkflow = match lexemes with
     | [] -> raise (Sys_error "Not enough arguments")
     | hd :: tl -> match hd with
