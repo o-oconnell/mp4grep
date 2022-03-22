@@ -52,13 +52,13 @@ echo "Files that will be converted:"
 echo "-----------------------------"
 for audio in ${audio_file_lst[@]}
 do
-    echo "${audio}"
+    echo "${audio} -> ${audio}.wav"
 done
 echo "-----------------------------"
 
 
 for audio in ${audio_file_lst[@]}
 do
-    ffmpeg -i "$audio" -acodec pcm_s16le -ac 1 -ar 16000 "${audio}.wav"
+    ffmpeg -hide_banner -loglevel error -i "$audio" -acodec pcm_s16le -ac 1 -ar 16000 "${audio}.wav"
 done
 

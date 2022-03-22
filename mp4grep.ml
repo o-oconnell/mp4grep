@@ -315,7 +315,6 @@ let unwrap (x : 'a option) : 'a =
               
 let ignore_cached_files (file : string) : bool =
   if is_cached file then begin
-      Printf.printf "File %s %s\n" file "is cached, not transcribing.\n";
       false
     end
   else true
@@ -323,7 +322,18 @@ let ignore_cached_files (file : string) : bool =
 let ignore_nonexistent_files (file : string) : bool =
   if file_exists file then true
   else begin
-    Printf.printf "File %s does not exist, not transcribing.\n" file;
+    Printf.printf "%s does not exist, not transcribing.\n" file;
+    false
+  end
+
+let ignore_non_audio_files_silent (file : string) : bool =
+  if is_audio_file file then true
+  else false
+
+let ignore_non_audio_files (file : string) : bool =
+  if is_audio_file file then true
+  else begin
+    Printf.printf "%s is not a wav file, cannot transcribe.\n" file;
     false
   end
 
@@ -412,22 +422,38 @@ let get_transcription (words_per_line : int) (audio_file : string) =
     line_start := !char_pos;
   done;
   (audio_file, (List.rev !line_lst))
-  
-let do_transcribe (args : transcribe_params) =
-  let filenames = unwrap args.files in
-  let words_per_line = unwrap args.words_per_line in
 
-  let lst_of_lsts =  List.map (get_transcription words_per_line) filenames in
+let get_valid_audio_files_loud (filenames : string list) =
+  filenames
+  |> List.filter ignore_nonexistent_files
+  |> List.filter ignore_non_audio_files
+
+let do_transcribe (args : transcribe_params) =
+  let all_filenames = unwrap args.files
+                      |> get_valid_audio_files_loud in
+  let files_to_transcribe = all_filenames
+                            |> List.filter ignore_cached_files in
+  let words_per_line = unwrap args.words_per_line in
+  
+  transcribe_files files_to_transcribe;
+
+  let lst_of_lsts =  List.map (get_transcription words_per_line) all_filenames in
   let _ = List.map (fun (audio_file, lst) ->
       Printf.printf "%s\n" audio_file;
       List.iter (Printf.printf "%s\n") lst) lst_of_lsts in
   ()
 
 let do_transcribe_to_files (args : transcribe_params) =
-  let filenames = unwrap args.files in
+  let all_filenames = unwrap args.files
+                      |> get_valid_audio_files_loud in
+  let files_to_transcribe = all_filenames
+                            |> List.filter ignore_cached_files in
   let words_per_line = unwrap args.words_per_line in
 
-  let lst_of_lsts =  List.map (get_transcription words_per_line) filenames in
+  transcribe_files files_to_transcribe;
+
+  let lst_of_lsts =  List.map (get_transcription words_per_line) all_filenames in
+  
   let _ = List.map (fun (audio_file, lst) ->
       let output_filename = audio_file^"_transcript.txt" in
       Printf.printf "Printing transcript of %s to %s\n" audio_file output_filename;
@@ -435,6 +461,7 @@ let do_transcribe_to_files (args : transcribe_params) =
       List.iter (Printf.fprintf out_chan "%s\n") lst;
       close_out out_chan;) lst_of_lsts in
   ()
+
 
 let do_search (args : search_params) =
   let query = unwrap args.query in
@@ -444,12 +471,13 @@ let do_search (args : search_params) =
   
   (* Does not print anything *)
   let audiofiles_to_search = filenames
-                             |> List.filter file_exists 
+                             |> List.filter file_exists
+                             |> List.filter ignore_non_audio_files_silent
   in
 
   (* Gives the user feedback about the status of their files *)
   let audiofiles_to_transcribe = filenames
-                                 |> List.filter ignore_nonexistent_files
+                                 |> get_valid_audio_files_loud
                                  |> List.filter ignore_cached_files
   in
 
