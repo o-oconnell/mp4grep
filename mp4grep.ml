@@ -480,9 +480,11 @@ let do_search (args : search_params) =
                                  |> get_valid_audio_files_loud
                                  |> List.filter ignore_cached_files
   in
+  
+  (if (List.length audiofiles_to_transcribe > 0) then begin
+      transcribe_files audiofiles_to_transcribe;
+    end);
 
-  transcribe_files audiofiles_to_transcribe;
-     
   let search_transcript (orig_search : string) (audio_file : string) =
     let file =  get_transcript audio_file in
     let str_to_search = read_whole_file file in
@@ -491,12 +493,10 @@ let do_search (args : search_params) =
                            |> String.trim 
     in
     
-
     (* LOAD TIMESTAMPS INTO HASHTABLE *)
-
     let tbl = get_byte_to_timestamp_table audio_file in
       
-      (* FIND ALL THE MATCHES AND PUT IN RESULT LIST *)
+    (* FIND ALL THE MATCHES AND PUT IN RESULT LIST *)
     (* Str.search_forward/backward has side effect: *)
     (* The next call to Str.matched_string will return the matched string *)
     let last_match_reached = ref false in
@@ -521,7 +521,7 @@ let do_search (args : search_params) =
         (* Iterate backwards until words_after + 1 spaces are found *)
         let spaces_prior = ref 0 in
         let spaces_after = ref 0 in
-        while ((!endpos < (String.length str_to_search))
+        while ((!endpos < ((String.length str_to_search) - 1))
                && (!spaces_after < (after + 1))) do
           endpos := !endpos + 1;
           if str_to_search.[!endpos] = ' ' then begin
@@ -534,13 +534,13 @@ let do_search (args : search_params) =
                && (!spaces_prior < (before + 1))) do
           startpos := !startpos - 1;
           if str_to_search.[!startpos] = ' ' then begin
-            spaces_prior := !spaces_prior + 1;
+              spaces_prior := !spaces_prior + 1;
           end
         done;
 
         (* Make sure that the starting position is always
            not a space, to index into the timestamps *)
-        if str_to_search.[!startpos] = ' ' then begin
+        if ((!startpos > 0) && (str_to_search.[!startpos] = ' ')) then begin
           startpos := !startpos + 1;
         end;
         

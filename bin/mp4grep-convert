@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Iterate through each input
+# If the input is a supported audio file, try to convert
+# If it's a directory, try to get all files from it
+
+function is_audio_file ()
+{
+    audiofile=$1
+    IFS='.' read -r -a split_on_space <<< "$audiofile"
+    extension=${split_on_space[-1]}
+
+    case "$extension" in
+	mp3|mp4|ogg|webm|mov|wav|avi)
+	    echo 1;;
+	*)
+	    echo 0;;
+    esac
+    
+}
+
+function extract_audio_from_dir
+{
+    for file in "$1"/*
+    do
+	is_audio_test=$(is_audio_file $file)
+	if [ $is_audio_test -eq 1 ]
+	then
+	    audio_file_lst+=($file)
+	fi
+    done
+}
+
+audio_file_lst=()
+for inp in $*
+do
+    is_audio_test=$(is_audio_file $inp)
+    if [ $is_audio_test -eq 1 ] 
+    then
+	audio_file_lst+=($inp)
+    elif [ -d "${inp}" ]
+    then
+	echo "${inp} is a directory, extracting audio files."
+	extract_audio_from_dir $inp
+    else
+	echo "${inp} is not an audio file or directory. Doing nothing."
+    fi
+    
+done
+
+echo "Files that will be converted:"
+echo "-----------------------------"
+for audio in ${audio_file_lst[@]}
+do
+    echo "${audio} -> ${audio}.wav"
+done
+echo "-----------------------------"
+
+
+for audio in ${audio_file_lst[@]}
+do
+    ffmpeg -hide_banner -loglevel error -i "$audio" -acodec pcm_s16le -ac 1 -ar 16000 "${audio}.wav"
+done
+
