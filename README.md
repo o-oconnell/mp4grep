@@ -10,19 +10,7 @@ mp4grep is a tool that transcribes and searches audio files, caching the results
 mp4grep depends on [Vosk](https://alphacephei.com/vosk/) to transcribe audio. You can download models from Vosk's [official list](https://alphacephei.com/vosk/models).
 
 ### Installation
-1. Install [Opam](https://opam.ocaml.org/)
-
-2. Create a new switch (version of the compiler) by running `opam switch create mp4grep 4.12.0+domains+effects`. This version is necessary as mp4grep will be updated to take advantage of multicore domains in OCaml.
-
-3. Install parmap on your new switch: `opam install parmap`.
-
-4. Download [mp4grep](https://github.com/o-oconnell/mp4grep/tags), untar/zip it, and cd into its directory.
-
-5. Execute `source configure.sh --prefix [location to install mp4grep]`. On Linux a good choice might be `~/.local/bin`, which is often in your $PATH.
-
-6. Run `make install`.
-
-7. You will need to specify your Vosk-compatible transcription model and directory for cached transcriptions by setting MP4GREP_MODEL and MP4GREP_CACHE. You'll probably want to export them in your .bashrc or .zshrc as well: `export MP4GREP_MODEL=/full/path/of/model`, `export MP4GREP_CACHE=/full/path/of/cache/dir`.
+The [latest release](https://github.com/o-oconnell/mp4grep/releases) provides a pre-built executable for x86 Linux. You can also refer to the most current [build instructions](https://github.com/o-oconnell/mp4grep/releases/tag/0.1.3-linux), which require installing the OCaml compiler.
 
 ### mp4grep-convert
 The mp4grep executable only takes single-channel, 16000 Hz wav files as input. Running `make install` also provides you with `mp4grep-convert`, which is a Bash script that will take directories or audio files as its arguments, extract audio files from directories, and convert them to wav files using ffmpeg.
