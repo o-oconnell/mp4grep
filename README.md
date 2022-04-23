@@ -16,7 +16,7 @@ The [latest release](https://github.com/o-oconnell/mp4grep/releases) provides a 
 The mp4grep executable only takes single-channel, 16000 Hz wav files as input. Running `make install` also provides you with `mp4grep-convert`, which is a Bash script that will take directories or audio files as its arguments, extract audio files from directories, and convert them to wav files using ffmpeg.
 
 ### Dependencies
-OCaml 4.12.0+domains+effects, parmap 1.2.4, and ffmpeg. The Makefile assumes that you have installed parmap using Opam, and looks under OPAM_INSTALL_PREFIX for it. You will have to modify the topmost `ocamlc` command in the Makefile if you have installed it another way. 
+If you only want to install, the [latest release](https://github.com/o-oconnell/mp4grep/releases) provides a pre-built executable for x86 Linux. You'll need `ffmpeg` and `gcc` in this case. If you want to build from source, you'll need more dependencies. The latest build instructions are [here](https://github.com/o-oconnell/mp4grep/releases/tag/0.1.3-linux).
 
 ### OCaml
 mp4grep was previously written in Java, and later in C++. Although we learned a lot from using those languages, we've moved to OCaml because we think its robustness will help mp4grep to survive and improve with time. The OCaml ecosystem is unfamiliar to most people, so it's important to be aware of which compiler you are using and where dependencies are stored. We recommend following the installation instructions above, and using Opam. 
