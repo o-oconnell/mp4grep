@@ -183,13 +183,12 @@ let get_audio_files_from (input : string) (input_tail : string list) : string li
     Sys.readdir input |>
     Array.iter (fun name ->
         if is_audio_file name then begin
-          audio_file_lst := (name :: !audio_file_lst);
+          audio_file_lst := ((input^"/"^name) :: !audio_file_lst);
         end;);
     !audio_file_lst
   end
   else
     input :: input_tail
-
 
 let rec make_current_duration_files (input_audio : string list) : unit =
   match input_audio with
@@ -269,7 +268,7 @@ let consume_search_args (xs : string list) : search_params =
                                         files = Some (get_audio_files_from hd x);
                                         before = params.before;
                                         after = params.after; }
-          | None ->param_create tl { query = params.query;
+          | None -> param_create tl { query = params.query;
                                      files = Some(get_audio_files_from hd []);
                                      before = params.before;
                                      after = params.after; }
